@@ -1,0 +1,12 @@
+{
+    "experiment_name": "guidance_memory_reuse_latency_test",
+    "description": "Questions designed to test if guidance memory reuse leads to decreasing response latency",
+    "questions": [
+        "Who has an outstanding home loan and has the highest loan balance, give me the age groups?"
+    ],
+    "expected_patterns": {
+        "ambiguous_questions": [
+            1
+        ]
+    }
+}

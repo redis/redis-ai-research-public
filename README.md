@@ -18,12 +18,16 @@ Each top-level directory is a self-contained project with its own README, depend
 
 ```
 .
-├── <project-1>/        # see project-level README
-├── <project-2>/        # see project-level README
+├── learning-agents/    # multi-agent NL → pandas analysis with Redis-backed
+│                       # semantic cache and learned-guidance memory
 └── ...
 ```
 
 Projects are added incrementally. Browse the top-level directories to see what's currently available.
+
+### Current projects
+
+- **[learning-agents](learning-agents/)** — A multi-agent system that turns natural-language questions into executable pandas code over a CSV/JSON dataset. Uses Redis vector indices for a semantic result cache and a persistent "guidance" memory that learns from past errors to improve future retries.
 
 ## Getting started
 

@@ -1,0 +1,18 @@
+[
+  "Plot the distribution of loan status by education",
+  "Give me a scatter plot of housing vs age",
+  "Plot the density of age for each value of housing",
+  "Give me the job categories with the top 5 balance amounts",
+  "Give me the job categories with the lowest average balance",
+  "What jobs have the highest percentage of defaults",
+  "How does default percentage correlate with education",
+  "Plot average default rates for each education tier",
+  "Which education degree is least likely to default",
+  "What education degree is most likely to default",
+  "Give me the average balance by job category",
+  "Plot the distribution of balance by job category",
+  "What jobs have the highest marital status?",
+  "I want the distribution",
+  "I want the distribution of the campaign column grouped by y",
+  "I want the distribution of the campaign column grouped by y"
+]
