@@ -1,0 +1,118 @@
+{
+    "experiment_name": "guidance_memory_reuse_latency_test",
+    "description": "Questions designed to test if guidance memory reuse leads to decreasing response latency",
+    "questions": [
+        "Plot the distribution of loan status by education",
+        "Show me the distribution of loan status by education level",
+        "Create a bar chart showing loan status distribution across different education levels",
+        "What is the distribution of loan status grouped by education?",
+        "Plot the distribution of balance by job category",
+        "Show me the balance distribution for each job category",
+        "Create a visualization of balance distribution grouped by job category",
+        "What jobs have the highest percentage of defaults?",
+        "Which job categories have the highest default rates?",
+        "Show me the jobs with the highest default percentages",
+        "Plot average default rates for each education tier",
+        "What are the average default rates by education level?",
+        "Show me the mean default rates for each education tier",
+        "Which education degree is least likely to default?",
+        "What education level has the lowest default probability?",
+        "Show me the education degree with the lowest default rate",
+        "Give me a scatter plot of housing vs age",
+        "Create a scatter plot showing housing against age",
+        "Plot housing values against customer age",
+        "What is the correlation between housing and age?",
+        "Plot the density of age for each value of housing",
+        "Show me the age density distribution by housing values",
+        "Create a density plot of age grouped by housing",
+        "Give me the job categories with the top 5 balance amounts",
+        "Which job categories have the highest balance amounts?",
+        "Show me the top 5 job categories by balance",
+        "What are the job categories with the lowest average balance?",
+        "Which jobs have the lowest mean balance?",
+        "Show me the job categories with the lowest average balance amounts",
+        "How does default percentage correlate with education?",
+        "What is the correlation between default rates and education?",
+        "Show me the correlation between default percentage and education level",
+        "Give me the average balance by job category",
+        "What is the mean balance for each job category?",
+        "Show me the average balance amounts by job category",
+        "What jobs have the highest marital status?",
+        "Which job categories have the highest percentage of married people?",
+        "Show me the jobs with the highest marital status rates",
+        "I want the distribution of the campaign column grouped by y",
+        "Show me the distribution of campaign values grouped by y",
+        "Plot the campaign distribution by y values",
+        "What is the distribution of the campaign column when grouped by y?"
+    ],
+    "expected_patterns": {
+        "education_loan_status_questions": [
+            0,
+            1,
+            2,
+            3
+        ],
+        "job_balance_questions": [
+            4,
+            5,
+            6
+        ],
+        "job_default_questions": [
+            7,
+            8,
+            9
+        ],
+        "education_default_questions": [
+            10,
+            11,
+            12
+        ],
+        "education_lowest_default_questions": [
+            13,
+            14,
+            15
+        ],
+        "housing_age_questions": [
+            16,
+            17,
+            18,
+            19
+        ],
+        "age_density_questions": [
+            20,
+            21,
+            22
+        ],
+        "job_top_balance_questions": [
+            23,
+            24,
+            25
+        ],
+        "job_lowest_balance_questions": [
+            26,
+            27,
+            28
+        ],
+        "default_education_correlation_questions": [
+            29,
+            30,
+            31
+        ],
+        "job_average_balance_questions": [
+            32,
+            33,
+            34
+        ],
+        "job_marital_status_questions": [
+            35,
+            36,
+            37
+        ],
+        "campaign_y_distribution_questions": [
+            38,
+            39,
+            40,
+            41
+        ]
+    }
+}

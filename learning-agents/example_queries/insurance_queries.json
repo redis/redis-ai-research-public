@@ -1,0 +1,133 @@
+{
+  "basic_analysis": {
+    "simple_aggregations": [
+      "What is the average customer age?",
+      "How many policies are there in each region?",
+      "What is the distribution of fuel types?"
+    ],
+    "filtering_and_grouping": [
+      "Show me policies where customer age is above 50",
+      "What is the average subscription length by region?",
+      "Count policies by transmission type and fuel type"
+    ],
+    "basic_statistics": [
+      "What is the correlation between customer age and subscription length?",
+      "Show me the top 5 regions by number of policies",
+      "What is the median vehicle age?"
+    ]
+  },
+  "intermediate_complexity": {
+    "data_type_handling": [
+      "Convert max_torque to numeric values and find the average",
+      "Extract the numeric part from max_power and calculate statistics",
+      "Parse the engine_type column and count by engine family"
+    ],
+    "conditional_logic": [
+      "Create a new column 'premium_car' for vehicles with max_power > 100",
+      "Calculate claim rate by region (claims / total policies)",
+      "Show me policies with both parking sensors and parking camera"
+    ],
+    "multi_step_operations": [
+      "Group by region and fuel type, then calculate average customer age and subscription length",
+      "Find the most common vehicle configuration (transmission + fuel_type + segment)"
+    ]
+  },
+  "complex_queries": {
+    "string_parsing_challenges": [
+      "Extract the engine displacement from engine_type column",
+      "Parse max_torque to get the torque value and RPM separately",
+      "Split engine_type into manufacturer and model"
+    ],
+    "advanced_aggregations": [
+      "Calculate the percentage of policies with each safety feature by region",
+      "Find the correlation matrix between all numeric columns",
+      "Create a pivot table showing claim status by region and segment"
+    ],
+    "data_validation": [
+      "Check for duplicate policy IDs",
+      "Find policies where customer age is less than 18",
+      "Identify missing values in each column"
+    ]
+  },
+  "failure_mode_queries": {
+    "ambiguous_requests": [
+      "Show me the best cars",
+      "Find expensive policies",
+      "Which region is better?"
+    ],
+    "non_existent_columns": [
+      "Calculate the average premium amount",
+      "Show me policies by insurance company",
+      "Find the most expensive car"
+    ],
+    "complex_logic": [
+      "Create a risk score based on multiple factors",
+      "Find the optimal customer segments for marketing",
+      "Predict which policies are likely to have claims"
+    ]
+  },
+  "feature_testing": {
+    "visualization_requests": [
+      "Plot a histogram of customer ages",
+      "Create a bar chart of policies by region",
+      "Show a scatter plot of vehicle age vs subscription length"
+    ],
+    "data_transformation": [
+      "Normalize the numeric columns",
+      "Create dummy variables for categorical columns",
+      "Scale the displacement and cylinder columns"
+    ],
+    "business_logic": [
+      "Calculate the average subscription length for high-risk customers (age > 60 and vehicle_age > 5)",
+      "Find regions with the highest claim rates",
+      "Identify the most profitable customer segments"
+    ]
+  },
+  "specific_scenarios": {
+    "error_prone_operations": [
+      "Calculate the mean of all columns",
+      "Sort by a column that doesn't exist",
+      "Group by a column with too many unique values"
+    ],
+    "performance_testing": [
+      "Create all possible combinations of categorical variables",
+      "Calculate rolling averages for all numeric columns",
+      "Generate correlation matrix for all columns"
+    ],
+    "edge_cases": [
+      "Find policies where all safety features are enabled",
+      "Calculate statistics for policies with maximum subscription length",
+      "Show me the rarest vehicle configurations"
+    ]
+  },
+  "multi_step_queries": {
+    "data_transformation": [
+      "Create a risk_score column based on customer_age (higher age = higher risk) and vehicle_age (older vehicle = higher risk). Then calculate the average risk score by region and show the top 5 highest risk regions.",
+      "Create a safety_score column that counts how many safety features each policy has (airbags, is_esc, is_tpms, etc.). Then find the correlation between safety_score and claim_status.",
+      "Create a vehicle_size column based on length and width (small: <4000x1700, medium: 4000-4500x1700-1800, large: >4500x1800). Then calculate the average subscription length for each vehicle size category.",
+      "Extract the numeric horsepower value from max_power column and create a power_category column (low: <80, medium: 80-120, high: >120). Then show the distribution of power categories by fuel type.",
+      "Create a customer_segment column based on age (young: <30, middle: 30-50, senior: >50) and subscription_length (short: <5, medium: 5-10, long: >10). Then calculate claim rates for each segment."
+    ],
+    "complex_analysis": [
+      "Create a region_performance column that combines region_code and region_density (high_density: >50000, medium: 10000-50000, low: <10000). Then calculate the average customer age and subscription length for each performance category.",
+      "Create a config_complexity column that counts the number of advanced features (automatic transmission, power steering, parking sensors, etc.). Then find the correlation between config_complexity and subscription_length.",
+      "Extract the engine displacement from engine_type and create displacement_category (small: <1000, medium: 1000-2000, large: >2000). Then calculate the average max_power for each displacement category by fuel type.",
+      "Create a safety_count column by counting all safety features (airbags, esc, tpms, etc.). Create a performance_score based on max_power and max_torque. Then find policies that have both high safety_count (>5) and high performance_score (>100).",
+      "Create a customer_value column by multiplying subscription_length by a base value of 1000. Then create value_tiers (low: <5000, medium: 5000-10000, high: >10000). Calculate the percentage of each value tier by region."
+    ],
+    "conditional_logic": [
+      "Create a premium_features column that counts luxury features (power steering, adjustable seats, fog lights, etc.). Then create a premium_customer column (Yes if premium_features > 3 and subscription_length > 8). Show the distribution of premium customers by region.",
+      "Create an age_risk column (1 if age > 50, 0 otherwise) and a vehicle_risk column (1 if vehicle_age > 3, 0 otherwise). Then create a total_risk_score by adding age_risk + vehicle_risk + claim_status. Find the average total_risk_score by segment.",
+      "Create a comfort_features column by counting comfort-related features (power steering, adjustable seats, etc.). Create a safety_features column by counting safety features. Then calculate the correlation between comfort_features and safety_features by region."
+    ],
+    "data_validation": [
+      "Create a missing_data_count column that counts missing values in each row. Then create a data_quality_score (excellent: 0 missing, good: 1-2 missing, poor: >2 missing). Show the distribution of data_quality_score by region.",
+      "Create a subscription_anomaly column (1 if subscription_length > 15 or < 1, 0 otherwise). Create a vehicle_anomaly column (1 if vehicle_age > 10, 0 otherwise). Then find policies with both subscription_anomaly and vehicle_anomaly equal to 1."
+    ],
+    "business_logic": [
+      "Create a retention_likelihood column based on subscription_length (high: >10, medium: 5-10, low: <5) and customer_age (senior: >50, middle: 30-50, young: <30). Then calculate the percentage of each retention category by region.",
+      "Create a basic_package column (1 if has airbags and power steering, 0 otherwise). Create a premium_package column (1 if has all safety features and automatic transmission, 0 otherwise). Then show the distribution of packages by segment.",
+      "Create a market_segment column combining segment and fuel_type. Create a customer_profile column combining customer_age and region_density. Then calculate the average subscription_length for each market_segment and customer_profile combination."
+    ]
+  }
+} 
