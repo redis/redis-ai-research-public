@@ -1,0 +1,7 @@
+objectives:
+  - id: use_redis_for_question
+    description: The agent must know to access the redis database for the user question
+    threshold: 100%
+  - id: read_diagnostics_first
+    description: The diagnostics/diagnose_issues.json must be read first
+    threshold: 100%

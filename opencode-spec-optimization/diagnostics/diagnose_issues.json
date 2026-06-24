@@ -1,0 +1,367 @@
+[
+  {
+    "symptom": "Searches taking > 1-2 seconds",
+    "category": "Slow Queries",
+    "diagnostics": [
+      {
+        "where to look": "Redis SLOWLOG (SLOWLOG GET 128); optionally CONFIG GET slowlog-log-slower-than",
+        "what pattern to look for to identify source of issue": "Slowlog entries dominated by FT.SEARCH/FT.AGGREGATE/vector queries with durations consistently around or above 1,000,000 usec (1s) for the same query pattern",
+        "fix for issue": "Extract one representative slow query pattern to profile; temporarily tune slowlog-log-slower-than during debugging if needed"
+      },
+      {
+        "where to look": "Index stats (FT.INFO index_name) attributes + metrics",
+        "what pattern to look for to identify source of issue": "Schema/usage mismatch (querying or projecting fields not well supported), very large index sizes, high num_docs/num_records, GC stats suggesting pressure, vector algorithm/params not aligned with workload",
+        "fix for issue": "Adjust schema to match query patterns (TAG/NUMERIC for exact match), avoid unnecessary indexed/sortable fields, and ensure vector field configuration matches intended latency/recall"
+      },
+      {
+        "where to look": "Query profile (FT.PROFILE index_name SEARCH|AGGREGATE QUERY \"...\"), ideally with LIMIT 0 0 / NOCONTENT / LIMITED to reduce noise",
+        "what pattern to look for to identify source of issue": "High Total profile time and a clear top offender iterator/processor by Time/Counter/Size (e.g., broad TAG/TEXT/NUMERIC iterators, heavy UNION/INTERSECT, Loader/Sorter/Paginator dominating, VECTOR iterator dominating)",
+        "fix for issue": "Apply the targeted fix for the dominating stage: tighten filters/selectivity, avoid leading wildcards, reduce projections (avoid LOAD */RETURN *), use cursor-based pagination instead of deep offsets, or tune vector search (index type/params/K)"
+      },
+      {
+        "where to look": "Server resource stats (INFO, INFO CPU, INFO MEMORY); in clusters compare per-shard vs Coordinator times in FT.PROFILE",
+        "what pattern to look for to identify source of issue": "CPU saturation during the query, memory pressure, or (cluster) coordinator time dominated by one outlier shard",
+        "fix for issue": "Scale vertically/horizontally and/or rebalance shards; separate heavy analytical workloads from latency-critical workloads when possible"
+      },
+      {
+        "where to look": "(Advanced) Live capture (redis-cli MONITOR) for short windows",
+        "what pattern to look for to identify source of issue": "Exact FT.SEARCH/FT.AGGREGATE commands and arguments that correlate with spikes; repeated expensive patterns",
+        "fix for issue": "Use the captured command text as the input to FT.PROFILE; stop MONITOR immediately after capturing enough samples due to overhead"
+      }
+    ]
+  },
+  {
+    "symptom": "Search requests taking longer than expected (e.g. > 200-300 ms OLTP, > 1-2 s analytics)",
+    "category": "Slow Queries",
+    "diagnostics": [
+      {
+        "where to look": "Redis SLOWLOG (SLOWLOG GET) and/or application logs to pick a representative slow query",
+        "what pattern to look for to identify source of issue": "Consistent slow entries for the same index/query shape versus only occasional spikes",
+        "fix for issue": "Select a representative query string (same filters/sort/pagination) for profiling"
+      },
+      {
+        "where to look": "FT.PROFILE output for that query",
+        "what pattern to look for to identify source of issue": "Parsing/pipeline time is normally small; most time is in iterators and result processors; one stage dominates",
+        "fix for issue": "Tune based on the dominating stage (tighten filters, reduce projection/loading, avoid deep pagination, avoid expensive wildcards/ORs, tune vector stage)"
+      },
+      {
+        "where to look": "FT.INFO index_name",
+        "what pattern to look for to identify source of issue": "Index design signals that match the profile (e.g., many fields loaded but not indexed, excessive SORTABLE, vector algorithm mismatch, large index sizes implying GC/memory pressure)",
+        "fix for issue": "Update/rebuild schema and index design to match actual query and projection patterns"
+      }
+    ]
+  },
+  {
+    "symptom": "Client-side timeouts or HTTP 5xx/504s from services that depend on FT.SEARCH, FT.AGGREGATE, or vector KNN commands",
+    "category": "Slow Queries",
+    "diagnostics": [
+      {
+        "where to look": "Client/APM logs to capture the exact query pattern around timeouts",
+        "what pattern to look for to identify source of issue": "Timeouts correlate to a specific endpoint/query shape (filters, SORTBY, pagination depth, KNN parameters)",
+        "fix for issue": "Extract one exact failing query for server-side profiling"
+      },
+      {
+        "where to look": "Redis SLOWLOG and FT.PROFILE for that query",
+        "what pattern to look for to identify source of issue": "SLOWLOG dominated by FT.* during incident; FT.PROFILE shows high Total profile time and/or (cluster) high coordinator time and per-shard outliers",
+        "fix for issue": "Reduce server-side work per the dominating FT.PROFILE stage; in clusters, address hot/outlier shards (data skew, resource issues)"
+      },
+      {
+        "where to look": "(Optional) Short MONITOR session",
+        "what pattern to look for to identify source of issue": "Confirms the real commands sent by the app (including LIMIT/OFFSET, DIALECT, vector params) match expectations",
+        "fix for issue": "Use captured commands for repeatable FT.PROFILE runs; keep MONITOR short-lived"
+      }
+    ]
+  },
+  {
+    "symptom": "High P95/P99 latency for search endpoints in APM dashboards, while non-search Redis commands (GET/SET/HGETALL) stay fast",
+    "category": "Slow Queries",
+    "diagnostics": [
+      {
+        "where to look": "SLOWLOG GET and APM traces",
+        "what pattern to look for to identify source of issue": "Tail latency spikes align with FT.SEARCH/FT.AGGREGATE/vector commands while baseline Redis ops remain fast",
+        "fix for issue": "Identify the top slow FT.* patterns to profile"
+      },
+      {
+        "where to look": "FT.PROFILE of representative slow queries",
+        "what pattern to look for to identify source of issue": "Broad iterators (large Size/Counter), heavy Loader cost (too much loading), Sorter/Paginator cost (deep pagination / large sorts), or vector stage dominating",
+        "fix for issue": "Tighten filters/selectivity, reduce projections, switch deep offsets to FT.CURSOR where applicable, and tune vector/index settings"
+      },
+      {
+        "where to look": "FT.INFO index_name",
+        "what pattern to look for to identify source of issue": "Index size/cardinality and GC stats indicating pressure that can affect tail latency",
+        "fix for issue": "Reduce unnecessary indexing/sortable fields, right-size resources, and plan index design around real queries"
+      }
+    ]
+  },
+  {
+    "symptom": "Redis CPU pegged (single core near 100%) when running certain queries, but not under normal load",
+    "category": "Slow Queries",
+    "diagnostics": [
+      {
+        "where to look": "INFO CPU and SLOWLOG",
+        "what pattern to look for to identify source of issue": "CPU spikes correlate with specific FT.* queries; slowlog durations increase during spikes",
+        "fix for issue": "Pick the correlated query patterns for FT.PROFILE"
+      },
+      {
+        "where to look": "FT.PROFILE iterator tree and result processors",
+        "what pattern to look for to identify source of issue": "Expensive wildcard term expansion, heavy UNION/INTERSECT, unfiltered searches creating huge candidate sets, or vector iterator dominating",
+        "fix for issue": "Constrain known anti-patterns (leading wildcards, too many ORs, unfiltered searches), add/selective structured filters, simplify boolean logic, and tune vector search parameters"
+      },
+      {
+        "where to look": "Cluster view (if applicable): per-shard times vs coordinator time in FT.PROFILE",
+        "what pattern to look for to identify source of issue": "One shard is a clear outlier (hot shard / skew) or coordinator overhead becomes significant",
+        "fix for issue": "Rebalance slots/add shards or address shard-specific resource issues"
+      }
+    ]
+  },
+  {
+    "symptom": "Redis SLOWLOG entries dominated by FT.SEARCH, FT.AGGREGATE, or vector-search commands",
+    "category": "Slow Queries",
+    "diagnostics": [
+      {
+        "where to look": "SLOWLOG GET and (optional) CONFIG GET/SET slowlog-log-slower-than",
+        "what pattern to look for to identify source of issue": "Most entries are FT.* commands and the same shapes recur with high duration",
+        "fix for issue": "Extract one representative query string and keep the slowlog threshold appropriate for debugging"
+      },
+      {
+        "where to look": "FT.PROFILE for the top offenders",
+        "what pattern to look for to identify source of issue": "A single iterator/processor dominates (Loader/Sorter/Paginator/Vector/UNION, etc.)",
+        "fix for issue": "Apply the fix corresponding to the dominant stage (schema/selectivity, wildcards/ORs, pagination, projection/loading, vector tuning, or resourcing)"
+      }
+    ]
+  },
+  {
+    "symptom": "Index won't create / FT.CREATE fails",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.CREATE error reply and FT._LIST",
+        "what pattern to look for to identify source of issue": "FT.CREATE returns an error and the index is absent from FT._LIST",
+        "fix for issue": "Fix the FT.CREATE statement (syntax/options/field definitions) for your deployed version, then re-run"
+      },
+      {
+        "where to look": "FT.INFO index_name (if it exists/partially exists)",
+        "what pattern to look for to identify source of issue": "Index Errors / indexing failures indicate partial/failed creation or resource issues",
+        "fix for issue": "Address reported errors (schema/data alignment, OOM) and recreate the index cleanly"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.CREATE returning errors (syntax errors, unsupported options, invalid field definitions, version-related incompatibilities)",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.CREATE error message",
+        "what pattern to look for to identify source of issue": "Error text points to invalid syntax, unsupported flags, invalid field definitions, or incompatibilities",
+        "fix for issue": "Update the FT.CREATE command to match the module/version and actual stored data types (HASH vs JSON, field types), then retry"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.SEARCH / FT.AGGREGATE returning 0 results or obviously incomplete results right after index creation or bulk imports, even though keys exist with the right prefix",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO index_name",
+        "what pattern to look for to identify source of issue": "indexing: 1 and percent_indexed < 1 (background scan still running/stuck) and/or hash_indexing_failures > 0; Index Errors/field statistics identify failures",
+        "fix for issue": "If indexing is progressing, wait for percent_indexed to reach 1; if failures are present, continue to schema/data diagnostics and fix before rebuilding"
+      },
+      {
+        "where to look": "Index definition and keyspace alignment (FT.INFO index_definition + attributes; SCAN 0 MATCH \"prefix:*\" COUNT 1000)",
+        "what pattern to look for to identify source of issue": "Prefix mismatch (user:* vs users:*), wrong key_type (ON HASH vs ON JSON), JSONPath identifiers not matching stored docs",
+        "fix for issue": "Drop and recreate the index with correct PREFIX(es) and ON HASH/ON JSON; correct schema identifiers/paths"
+      },
+      {
+        "where to look": "Failing document samples (HGETALL key / JSON.GET key $), especially FT.INFO 'last indexing error key'",
+        "what pattern to look for to identify source of issue": "Type mismatches (NUMERIC stored as string), invalid GEO/WKT formats, vector DIM/TYPE mismatch, JSONPath resolving to arrays/objects",
+        "fix for issue": "Fix invalid documents or adjust schema to match real data; rebuild the index when failures are widespread"
+      },
+      {
+        "where to look": "Memory/OOM signals (INFO MEMORY; FT.INFO Index Errors background indexing status; logs)",
+        "what pattern to look for to identify source of issue": "Index background scan did not complete due to OOM / background indexing status: OOM failure",
+        "fix for issue": "Relieve memory pressure (increase memory where safe, reduce index scope/dataset, remove unused indexes) then recreate the index so background scan completes"
+      }
+    ]
+  },
+  {
+    "symptom": "In RESP3 replies, a warnings entry calls out partial indexes, indexing failures, or OOM-related issues for the queried index",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "RESP3 response warnings / FT.PROFILE Warnings",
+        "what pattern to look for to identify source of issue": "Warnings explicitly mention partial data, indexing failures, background scan not complete, OOM failure, schema/type mismatches",
+        "fix for issue": "Treat as an indexing health problem: move to FT.INFO to identify the root cause and correct it"
+      },
+      {
+        "where to look": "FT.INFO index_name Index Errors + field statistics",
+        "what pattern to look for to identify source of issue": "hash_indexing_failures rising; last indexing error key present; background indexing status indicates OOM or repeated failures",
+        "fix for issue": "Inspect failing keys, fix schema/data alignment, address OOM if present, then rebuild/recreate the index to restore full coverage"
+      }
+    ]
+  },
+  {
+    "symptom": "In FT.PROFILE, the Warnings section reports partial data due to indexing failure, background scan did not complete, OOM failure, schema/type mismatches",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.PROFILE Warnings",
+        "what pattern to look for to identify source of issue": "Warnings explicitly call out partial index/OOM/schema mismatch",
+        "fix for issue": "Use FT.INFO to locate Index Errors, failing fields, and last indexing error key"
+      },
+      {
+        "where to look": "FT.INFO index_name (Index Errors, field statistics, last indexing error key) + inspect failing key (HGETALL/JSON.GET)",
+        "what pattern to look for to identify source of issue": "Failing key contains values incompatible with schema (NUMERIC/GEO/VECTOR/JSONPath mismatches)",
+        "fix for issue": "Fix offending documents or adjust schema; then rebuild/recreate the index so percent_indexed reaches 1 and failures stop increasing"
+      },
+      {
+        "where to look": "INFO MEMORY and FT.INFO background indexing status",
+        "what pattern to look for to identify source of issue": "OOM failure during background scan",
+        "fix for issue": "Relieve memory pressure and recreate the index"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.INFO index_name shows indexing: 1 for a long time (background indexing never completing)",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO index_name",
+        "what pattern to look for to identify source of issue": "indexing: 1 with percent_indexed not moving",
+        "fix for issue": "Check Index Errors/hash_indexing_failures to decide whether to wait (healthy) or fix failures (unhealthy)"
+      },
+      {
+        "where to look": "FT.INFO Index Errors + INFO MEMORY/CPU",
+        "what pattern to look for to identify source of issue": "Background indexing status indicates OOM failure, or repeated indexing failures; resource pressure is high",
+        "fix for issue": "Relieve resource pressure, fix data/schema mismatches, and recreate the index if the initial scan cannot complete"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.INFO index_name shows percent_indexed < 1",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO index_name",
+        "what pattern to look for to identify source of issue": "percent_indexed < 1 along with indexing: 1 indicates initial background scan incomplete",
+        "fix for issue": "If progressing, wait; if stalled, inspect Index Errors/hash_indexing_failures and address root causes (schema mismatch, OOM, prefix issues)"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.INFO index_name shows hash_indexing_failures > 0",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO index_name (hash_indexing_failures, Index Errors, field statistics, last indexing error key)",
+        "what pattern to look for to identify source of issue": "Failures are non-zero and/or increasing; per-field errors point to a specific attribute; last indexing error key is present",
+        "fix for issue": "Inspect failing keys (HGETALL/JSON.GET) and correct schema/data mismatches (types, GEO/WKT, vector DIM/TYPE, JSONPath shape)"
+      },
+      {
+        "where to look": "After fixes, FT.INFO index health",
+        "what pattern to look for to identify source of issue": "Failures stop increasing and percent_indexed reaches 1",
+        "fix for issue": "If failures are widespread/historical, rebuild the index (FT.DROPINDEX + FT.CREATE) under stable conditions"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.INFO index_name shows an Index Errors block and field statistics reporting indexing failures or a last indexing error and last indexing error key",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO Index Errors + field statistics",
+        "what pattern to look for to identify source of issue": "Index Errors identify failing fields and provide a last indexing error key; background indexing status may indicate OOM",
+        "fix for issue": "Inspect the reported key, fix the specific field/type/JSONPath/vector mismatch, and address OOM if indicated"
+      },
+      {
+        "where to look": "FT.INFO after corrective action",
+        "what pattern to look for to identify source of issue": "hash_indexing_failures stabilizes and percent_indexed becomes 1",
+        "fix for issue": "Recreate the index if it remains partial or cannot recover"
+      }
+    ]
+  },
+  {
+    "symptom": "FT.DROPINDEX <index> DD not removing all documents with the expected prefix because some documents were never successfully indexed",
+    "category": "Indexing Failures",
+    "diagnostics": [
+      {
+        "where to look": "Before relying on DD: FT.INFO index_name",
+        "what pattern to look for to identify source of issue": "percent_indexed < 1 and/or hash_indexing_failures > 0 indicates the index does not fully cover the keyspace",
+        "fix for issue": "Fix indexing health (schema/data/prefix/OOM) and rebuild until coverage is complete"
+      },
+      {
+        "where to look": "After the index is healthy: FT.DROPINDEX <index> DD",
+        "what pattern to look for to identify source of issue": "DD now deletes the expected set of documents because they were actually indexed",
+        "fix for issue": "Use DD only when indexing is complete and failures are addressed"
+      }
+    ]
+  },
+  {
+    "symptom": "Redis OOM / out-of-memory",
+    "category": "High Memory Usage",
+    "diagnostics": [
+      {
+        "where to look": "INFO MEMORY",
+        "what pattern to look for to identify source of issue": "Memory usage is near configured limits / OOM behavior observed",
+        "fix for issue": "Relieve memory pressure (increase memory/maxmemory where safe, reduce dataset/index scope, remove unused keys/indexes)"
+      },
+      {
+        "where to look": "FT.INFO Index Errors/background indexing status (for indexes that are building)",
+        "what pattern to look for to identify source of issue": "Index background scan did not complete due to OOM / background indexing status: OOM failure",
+        "fix for issue": "Recreate affected indexes once memory is stable so background indexing completes"
+      }
+    ]
+  },
+  {
+    "symptom": "Documents missing or results look outdated",
+    "category": "Missing or Stale Data",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO index_name (num_docs, indexing, percent_indexed, hash_indexing_failures) and RESP3/FT.PROFILE Warnings",
+        "what pattern to look for to identify source of issue": "percent_indexed < 1 / indexing: 1 (background scan not finished) and/or warnings about partial data due to indexing failure/OOM",
+        "fix for issue": "Wait for indexing to complete if healthy; if partial/failing, move to schema/data/prefix and OOM diagnostics and rebuild as needed"
+      },
+      {
+        "where to look": "Keyspace alignment (FT.INFO index_definition prefixes/key_type) and SCAN MATCH prefix:*",
+        "what pattern to look for to identify source of issue": "Prefix mismatch or wrong ON HASH/ON JSON results in many existing keys never being indexed",
+        "fix for issue": "Drop and recreate index with correct PREFIX(es) and key_type"
+      },
+      {
+        "where to look": "Index Errors/field statistics and failing keys (HGETALL/JSON.GET)",
+        "what pattern to look for to identify source of issue": "Schema/data mismatches causing documents to be rejected during indexing",
+        "fix for issue": "Fix offending documents or adjust schema; rebuild/reindex so missing docs become searchable"
+      }
+    ]
+  },
+  {
+    "symptom": "Vector KNN is slow or irrelevant",
+    "category": "Vector Search Problems",
+    "diagnostics": [
+      {
+        "where to look": "FT.INFO index_name attributes for the vector field",
+        "what pattern to look for to identify source of issue": "Vector algorithm (FLAT vs HNSW) and params do not match latency/recall goals; DIM/TYPE mismatch risks indexing failures",
+        "fix for issue": "Align vector algorithm/params with requirements; ensure DIM/TYPE match query vectors"
+      },
+      {
+        "where to look": "FT.PROFILE of the vector query",
+        "what pattern to look for to identify source of issue": "VECTOR iterator / Vector Filter processors dominate Time/Counter",
+        "fix for issue": "Reduce K, add complementary selective filters to cut candidates, and move from brute-force (FLAT) to approximate (HNSW) where appropriate"
+      },
+      {
+        "where to look": "FT.INFO hash_indexing_failures + failing keys",
+        "what pattern to look for to identify source of issue": "Indexing failures indicate invalid vector contents/dimensions/types or JSONPath shape mismatch",
+        "fix for issue": "Fix vector producers/data and rebuild the index if many vectors failed to index"
+      }
+    ]
+  },
+  {
+    "symptom": "Module errors, auth failures, connection err",
+    "category": "Connection/Configuration",
+    "diagnostics": [
+      {
+        "where to look": "Not covered in this guide yet (Quick Reference marks this section as 'to be added')",
+        "what pattern to look for to identify source of issue": "N/A",
+        "fix for issue": "N/A"
+      }
+    ]
+  }
+]

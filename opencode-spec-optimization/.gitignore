@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Per-run outputs
+artifacts/
+rendered/
