@@ -1,0 +1,28 @@
+# Copy to terraform.tfvars and fill in for your AWS account.
+# terraform.tfvars is gitignored.
+
+region                    = "us-east-1"
+
+vpc_id                    = "vpc-xxxxxxxxxxxxxxxxx"
+private_subnet_a_id       = "subnet-xxxxxxxxxxxxxxxxx"
+private_subnet_b_id       = "subnet-xxxxxxxxxxxxxxxxx"
+public_subnet_id          = "subnet-xxxxxxxxxxxxxxxxx"
+public_route_table_id     = "rtb-xxxxxxxxxxxxxxxxx"
+vpc_cidr                  = "10.0.0.0/16"
+
+# Your IP, in CIDR form — e.g. "$(curl -s ifconfig.me)/32"
+ssh_ingress_cidr          = "1.2.3.4/32"
+
+memorydb_cluster_name     = "redis-search"
+memorydb_node_type        = "db.r7g.large"
+memorydb_acl_name         = "open-access"
+
+# Must be globally unique
+s3_bucket_name            = "longmemeval-sessions-<your-account-id>"
+
+# Name of an existing EC2 key pair in this region
+key_pair_name             = "your-ec2-keypair"
+
+bastion_instance_type     = "t4g.small"
+bastion_availability_zone = "us-east-1a"
+ebs_data_size_gb          = 10

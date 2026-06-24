@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+gpu_embed.py
+
+# Local config — copy config.example.yaml to config.yaml and fill in your values
+config.yaml
+
+# Terraform state and locally filled tfvars
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfstate.*.backup
+terraform/terraform.tfvars
+terraform/*.auto.tfvars
