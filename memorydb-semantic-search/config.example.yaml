@@ -1,0 +1,29 @@
+# Copy this file to `config.yaml` and fill in your own values.
+# `config.yaml` is gitignored so it never lands in a public repo.
+# Any value can also be overridden by the matching environment variable
+# (shown in parentheses); env vars win over the YAML file.
+
+memorydb:
+  # Cluster configuration endpoint, e.g.
+  # clustercfg.<cluster>.<id>.memorydb.<region>.amazonaws.com
+  host: <MEMORYDB_HOST>            # (MEMORYDB_HOST)
+  port: 6379                       # (MEMORYDB_PORT)
+  password: null                   # (MEMORYDB_PASSWORD) – leave null for IAM/no-auth
+  tls: true                        # (MEMORYDB_TLS)
+
+s3:
+  bucket: <S3_BUCKET>              # (S3_BUCKET) – text storage for hybrid approach
+  prefix: sessions                 # (S3_PREFIX) – key prefix for session text
+
+bastion:
+  ip: <BASTION_PUBLIC_IP>          # (BASTION_IP)
+  user: ec2-user                   # (BASTION_USER)
+  ssh_key: ~/.ssh/<your-key>.pem   # (BASTION_SSH_KEY)
+
+server:
+  host: 0.0.0.0                    # (SERVER_HOST) – FastAPI bind address on the bastion
+  port: 8080                       # (SERVER_PORT)
+  pool_size: 8                     # (POOL_SIZE) – Redis client pool size
+
+aws:
+  region: us-east-1                # (AWS_REGION)

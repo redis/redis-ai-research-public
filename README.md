@@ -18,8 +18,10 @@ Each top-level directory is a self-contained project with its own README, depend
 
 ```
 .
-├── learning-agents/    # multi-agent NL → pandas analysis with Redis-backed
-│                       # semantic cache and learned-guidance memory
+├── learning-agents/            # multi-agent NL → pandas analysis with Redis-backed
+│                               # semantic cache and learned-guidance memory
+├── memorydb-semantic-search/   # vector search over ~238k LongMemEval sessions on
+│                               # AWS MemoryDB (pure-Redis vs. hybrid+S3 vs. hybrid+EBS)
 └── ...
 ```
 
@@ -28,6 +30,7 @@ Projects are added incrementally. Browse the top-level directories to see what's
 ### Current projects
 
 - **[learning-agents](learning-agents/)** — A multi-agent system that turns natural-language questions into executable pandas code over a CSV/JSON dataset. Uses Redis vector indices for a semantic result cache and a persistent "guidance" memory that learns from past errors to improve future retries.
+- **[memorydb-semantic-search](memorydb-semantic-search/)** — Semantic search over ~238k LongMemEval chat sessions on AWS MemoryDB (Valkey 7.2 with search). Benchmarks three backend approaches — pure Redis, hybrid+S3, and hybrid+EBS — with Terraform for the full AWS stack (MemoryDB cluster, bastion, S3, VPC endpoint) and a FastAPI server exposing the search APIs.
 
 ## Getting started
 
