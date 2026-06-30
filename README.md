@@ -18,6 +18,8 @@ Each top-level directory is a self-contained project with its own README, depend
 
 ```
 .
+├── coding-agents/              # multi-tenant OpenAI Agents SDK coding-agent
+│                               # service with sandboxed tenant workspaces
 ├── learning-agents/            # multi-agent NL → pandas analysis with Redis-backed
 │                               # semantic cache and learned-guidance memory
 ├── memorydb-semantic-search/   # vector search over ~238k LongMemEval sessions on
@@ -31,6 +33,7 @@ Projects are added incrementally. Browse the top-level directories to see what's
 
 ### Current projects
 
+- **[coding-agents](coding-agents/)** — A multi-tenant FastAPI coding-agent service built on the OpenAI Agents SDK sandbox harness. Authenticates tenants, maps each request to an isolated workspace, supports synchronous and SSE-streamed task execution, and can fan work out to parallel sandbox subagents.
 - **[learning-agents](learning-agents/)** — A multi-agent system that turns natural-language questions into executable pandas code over a CSV/JSON dataset. Uses Redis vector indices for a semantic result cache and a persistent "guidance" memory that learns from past errors to improve future retries.
 - **[memorydb-semantic-search](memorydb-semantic-search/)** — Semantic search over ~238k LongMemEval chat sessions on AWS MemoryDB (Valkey 7.2 with search). Benchmarks three backend approaches — pure Redis, hybrid+S3, and hybrid+EBS — with Terraform for the full AWS stack (MemoryDB cluster, bastion, S3, VPC endpoint) and a FastAPI server exposing the search APIs.
 - **[opencode-spec-optimization](opencode-spec-optimization/)** — Workflow that runs every question in `QUESTIONS.yaml` against [OpenCode](https://opencode.ai) multiple times in parallel, evaluates the responses against the thresholds in `OBJECTIVE.yaml`, and iteratively rewrites `AGENTS.md` until every objective passes or the retry limit is hit. Useful for tuning agent system prompts via measurable, repeatable evals.

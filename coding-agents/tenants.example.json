@@ -1,0 +1,21 @@
+{
+  "tenants": [
+    {
+      "id": "acme",
+      "name": "Acme Corp",
+      "api_key": "demo-key-acme",
+      "workspace_kind": "local_dir",
+      "workspace_source": "acme"
+    },
+    {
+      "id": "globex",
+      "name": "Globex Inc",
+      "api_key_sha256": "REPLACE_WITH_sha256_of_the_key",
+      "workspace_kind": "git_repo",
+      "workspace_source": "your-org/your-repo",
+      "git_ref": "main",
+      "model": "gpt-5.1",
+      "max_turns": 40
+    }
+  ]
+}

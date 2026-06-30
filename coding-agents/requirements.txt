@@ -1,0 +1,10 @@
+# Core
+openai-agents>=0.14.0       # Sandbox Agents require >=0.14.0
+openai>=1.40.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# For the "docker" sandbox backend, install the extra instead:
+#   pip install "openai-agents[docker]"
