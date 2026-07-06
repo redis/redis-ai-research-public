@@ -1,69 +1,82 @@
-"""Builds and runs a per-tenant sandbox coding agent.
+"""Builds and runs a per-tenant coding agent that executes directly on the host.
 
 Architecture: orchestrator + parallel subagents.
 
-The orchestrator is the agent /v1/tasks talks to. It keeps the long-running
-conversation and has one extra tool, `invoke_subagents`, that fans work out to
-short-lived worker agents. Each worker runs in its own sandbox session with a
-fresh context window, does one focused chunk of work, and returns a short
-report. Passing N subtasks runs them concurrently via asyncio.gather.
+The orchestrator is the agent the API talks to. It keeps the long-running
+conversation and has an `invoke_subagents` tool that fans work out to
+short-lived worker agents, each with a fresh context window. Passing N
+subtasks runs them concurrently via asyncio.gather.
 
-Why: long coding tasks blow the orchestrator's token budget if every file read
-and command output sits in its context. Subagents absorb that detail and return
-only conclusions.
+Execution model: NO sandbox. Tools run in this process against the tenant's
+real workspace folder — shell commands run with cwd=<workspace>, file tools
+are confined to paths under <workspace>. Edits write through to the real
+files. Isolation, if needed, is handled outside this service.
 """
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
+from contextlib import AsyncExitStack
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal, Optional
 
 import httpx
-from agents import Runner, SessionABC, function_tool
+from agents import Agent, Runner, SessionABC, function_tool
+from agents.mcp import MCPServerStdio
 from agents.run import RunConfig
-from agents.sandbox import SandboxAgent, SandboxRunConfig
-from agents.sandbox.capabilities import Capabilities
 from pydantic import BaseModel, Field
 
 from .config import Settings
-from .tenancy import Tenant, build_manifest, make_sandbox_client
+from .tenancy import Tenant, resolve_local_workspace
+
+logger = logging.getLogger("coding_agent.agent")
 
 WEBFETCH_MAX_BYTES = 200_000
 WEBFETCH_TIMEOUT_S = 20.0
+SHELL_TIMEOUT_S = 120
+TOOL_OUTPUT_MAX_CHARS = 20_000
 
-ORCHESTRATOR_INSTRUCTIONS = (
-    "You are a careful software engineer working inside an isolated sandbox. "
-    "The tenant's project is mounted at `repo/`. Before changing anything, read "
-    "the relevant files to understand the code. Make the smallest change that "
-    "satisfies the request and preserve existing behavior. Edit files with "
-    "apply_patch using paths relative to the sandbox workspace root. When you "
-    "run commands, prefer the project's own test/build commands and state the "
-    "exact command you ran. Finish with a short summary of what you changed and "
-    "how you verified it. Never touch anything outside `repo/`.\n\n"
-    "You have a `webfetch` tool for reading public web pages or API responses "
-    "when the task needs info the workspace doesn't have (docs, release notes, "
-    "etc.). Don't use it for anything that should come from the codebase.\n\n"
+ORCHESTRATOR_INSTRUCTIONS_TEMPLATE = (
+    "You are a capable general assistant and careful software engineer. "
+    "You work directly in the user's real workspace folder:\n"
+    "    {root}\n"
+    "All your tools operate on the actual files — edits are real and "
+    "persistent, so be deliberate. Use paths relative to the workspace root "
+    "(absolute paths under it also work). Never touch anything outside it.\n\n"
+    "For code tasks: read the relevant files before changing anything, make "
+    "the smallest change that satisfies the request, prefer the project's own "
+    "test/build commands, and state the exact command you ran. Finish with a "
+    "short summary of what you changed and how you verified it.\n\n"
+    "You are not limited to coding tasks. When the user asks a general "
+    "question, use the `webfetch` tool to actively look up public web content "
+    "— documentation, news, reference data, or any public API. Try before "
+    "declaring something impossible: prefer static pages and open JSON APIs "
+    "(e.g. Wikipedia and its REST API, r.jina.ai mirrors, government/open-data "
+    "endpoints) since heavy JavaScript sites return little useful text. If one "
+    "source fails, try another phrasing or site before giving up, and cite "
+    "which URL your answer came from.\n\n"
     "You have `todo_write` and `todo_read` tools for tracking multi-step plans. "
     "On non-trivial tasks, call `todo_write` early to lay out the steps, then "
     "update statuses as you go. The list resets each task.\n\n"
     "You have an `invoke_subagents` tool that spawns focused worker subagents. "
     "Use it when work decomposes into independent pieces — e.g. exploring "
-    "several modules at once, running multiple independent analyses, or "
-    "drafting alternative approaches in parallel. Pass MULTIPLE subtasks in one "
-    "call to run them concurrently. Pass a single subtask when later steps "
-    "depend on the result. Subagents share the same workspace, so do NOT run "
-    "parallel subagents that write to the same files — keep parallel work "
-    "read-only or partition the files by directory. Each subagent returns a "
-    "short report; integrate those reports yourself."
+    "several modules at once or running multiple independent analyses. Pass "
+    "MULTIPLE subtasks in one call to run them concurrently; pass a single "
+    "subtask when later steps depend on the result. Subagents work in the SAME "
+    "real folder, so do NOT run parallel subagents that write to the same "
+    "files — keep parallel work read-only or partition by file. Each subagent "
+    "returns a short report; integrate those reports yourself."
 )
 
-WORKER_INSTRUCTIONS = (
-    "You are a focused worker subagent. You share the tenant's sandbox "
-    "workspace, mounted at `repo/`. Do exactly the task the orchestrator gave "
-    "you and nothing else. Return a concise factual report — what you found, "
-    "what you changed, what command you ran and its outcome. Your output goes "
-    "back to the orchestrator, not the end user, so skip pleasantries and lead "
-    "with the findings."
+WORKER_INSTRUCTIONS_TEMPLATE = (
+    "You are a focused worker subagent operating directly in the user's real "
+    "workspace folder: {root}. Edits are real. Do exactly the task the "
+    "orchestrator gave you and nothing else. Return a concise factual report "
+    "— what you found, what you changed, what command you ran and its "
+    "outcome. Your output goes back to the orchestrator, not the end user, so "
+    "skip pleasantries and lead with the findings."
 )
 
 
@@ -72,6 +85,261 @@ class TaskResult:
     tenant_id: str
     model: str
     output: Any
+
+
+AGENTS_MD_MAX_CHARS = 30_000
+
+
+def _load_agents_md(root: Path) -> Optional[str]:
+    """Read AGENTS.md from the workspace root, if present.
+
+    Loaded fresh on every run so edits apply immediately. Truncated to keep a
+    runaway file from eating the context window.
+    """
+    p = root / "AGENTS.md"
+    if not p.is_file():
+        return None
+    try:
+        text = p.read_text("utf-8", errors="replace").strip()
+    except OSError:
+        return None
+    if not text:
+        return None
+    if len(text) > AGENTS_MD_MAX_CHARS:
+        text = text[:AGENTS_MD_MAX_CHARS] + "\n\n[AGENTS.md truncated]"
+    return text
+
+
+def _with_agents_md(instructions: str, agents_md: Optional[str]) -> str:
+    if agents_md is None:
+        return instructions
+    return (
+        f"{instructions}\n\n"
+        f"## Workspace instructions (from AGENTS.md in the workspace root)\n"
+        f"Follow these for all work in this workspace:\n\n{agents_md}"
+    )
+
+
+async def _prepare_agents_md(
+    root: Path, prompt: str, session: Optional[SessionABC]
+) -> tuple[str, Optional[str], dict]:
+    """Decide how AGENTS.md reaches the model.
+
+    Returns (prompt, instructions_md, info) where info describes what happened
+    (surfaced as a `workspace_instructions` SSE event on streaming endpoints).
+
+    * One-shot task (no session): AGENTS.md goes into the instructions —
+      re-read every run, never persisted.
+    * First message of a session: AGENTS.md is prepended to the user message,
+      so it's stored ONCE in history and replayed on every later turn.
+    * Later session turns: nothing added — the copy in history covers it.
+    """
+    agents_md = _load_agents_md(root)
+    if agents_md is None:
+        return prompt, None, {"loaded": False, "reason": "no AGENTS.md in workspace root"}
+
+    if session is None:
+        return prompt, agents_md, {
+            "loaded": True, "mode": "instructions", "chars": len(agents_md),
+        }
+    existing = await session.get_items(limit=1)
+    if existing:
+        return prompt, None, {
+            "loaded": True, "mode": "replayed_from_session_history",
+        }
+    return (
+        f"## Workspace instructions (from AGENTS.md in the workspace root)\n"
+        f"Follow these for all work in this conversation:\n\n{agents_md}\n\n"
+        f"---\n\n{prompt}",
+        None,
+        {"loaded": True, "mode": "first_message", "chars": len(agents_md)},
+    )
+
+
+# ---------------------------------------------------------------------------
+# MCP: discovery + connection
+# ---------------------------------------------------------------------------
+
+
+def _parse_mcp_json(path: Path) -> list[dict]:
+    """Parse an mcp.json. Accepts both {"servers": {...}} and the Claude-style
+    {"mcpServers": {...}} key."""
+    data = json.loads(path.read_text("utf-8"))
+    servers = data.get("servers") or data.get("mcpServers") or {}
+    return [{"name": name, **cfg} for name, cfg in servers.items()]
+
+
+def _nearest_pyproject_dir(start: Path) -> Optional[Path]:
+    """Walk up from `start` looking for a pyproject.toml (max 4 levels)."""
+    current = start if start.is_dir() else start.parent
+    for _ in range(4):
+        if (current / "pyproject.toml").exists():
+            return current
+        if current.parent == current:
+            break
+        current = current.parent
+    return None
+
+
+def _py_server_definition(f: Path) -> Optional[dict]:
+    """Build a launch definition for a FastMCP server script, or None if the
+    file doesn't look like one (no mcp.run() entrypoint)."""
+    try:
+        text = f.read_text("utf-8", errors="ignore")
+    except OSError:
+        return None
+    if ".run(" not in text or "__main__" not in text:
+        return None
+    project = _nearest_pyproject_dir(f)
+    if project is not None:
+        args = ["run", "--project", str(project), "python", str(f)]
+    else:
+        args = ["run", "--with", "fastmcp", "python", str(f)]
+    return {"name": f.stem, "command": "uv", "args": args}
+
+
+def discover_mcp_definitions(path_str: str) -> list[dict]:
+    """Turn a user-supplied path into MCP server definitions.
+
+    Accepts:
+      * an mcp.json file            -> its listed servers
+      * a single .py FastMCP script -> one server
+      * a directory                 -> its mcp.json if present, else every
+                                       *.py inside that has an mcp.run()
+                                       __main__ entrypoint
+    Raises ValueError if nothing usable is found.
+    """
+    path = Path(path_str).expanduser().resolve()
+    if not path.exists():
+        raise ValueError(f"MCP path does not exist: {path}")
+
+    if path.is_file():
+        if path.suffix == ".json":
+            defs = _parse_mcp_json(path)
+        elif path.suffix == ".py":
+            d = _py_server_definition(path)
+            defs = [d] if d else []
+        else:
+            raise ValueError(f"Unsupported MCP path (want .json, .py, or dir): {path}")
+    else:
+        cfg = path / "mcp.json"
+        if cfg.exists():
+            defs = _parse_mcp_json(cfg)
+        else:
+            defs = [
+                d
+                for f in sorted(path.glob("*.py"))
+                if (d := _py_server_definition(f)) is not None
+            ]
+    if not defs:
+        raise ValueError(f"No MCP servers found at {path}")
+    return defs
+
+
+def _load_mcp_definitions(settings: Settings) -> list[dict]:
+    """Definitions from the static MCP_CONFIG fallback (may be empty)."""
+    if not settings.mcp_config:
+        return []
+    path = Path(settings.mcp_config)
+    if not path.exists():
+        logger.warning("MCP_CONFIG=%s does not exist; skipping MCP.", path)
+        return []
+    return _parse_mcp_json(path)
+
+
+def _translate_workspace_paths(value: Any, root: Path) -> Any:
+    """Recursively normalize path-like tool args to absolute host paths.
+
+    * legacy 'repo/<x>' (from old sandbox-era sessions) -> <root>/<x>
+    * relative paths that exist under the workspace root -> absolute
+    Everything else passes through untouched.
+    """
+    if isinstance(value, str):
+        if value == "repo":
+            return str(root)
+        if value.startswith("repo/"):
+            return str(root / value[len("repo/"):])
+        if value and not value.startswith("/") and (root / value).exists():
+            return str(root / value)
+        return value
+    if isinstance(value, dict):
+        return {k: _translate_workspace_paths(v, root) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_translate_workspace_paths(v, root) for v in value]
+    return value
+
+
+class PathTranslatingMCPServer(MCPServerStdio):
+    """MCP server whose tool-call args get workspace-relative paths absolutized.
+
+    MCP servers run with their own cwd, so relative paths the model passes
+    (or legacy 'repo/...' paths from old sessions) would miss. Rewriting at
+    the call boundary makes this reliable instead of prompt-dependent.
+    """
+
+    path_root: Optional[Path] = None  # set after construction when known
+
+    async def call_tool(self, tool_name, arguments, meta=None):
+        if self.path_root is not None and arguments:
+            arguments = _translate_workspace_paths(arguments, self.path_root)
+        return await super().call_tool(tool_name, arguments, meta)
+
+
+async def connect_mcp_servers(
+    definitions: list[dict],
+    stack: AsyncExitStack,
+    path_root: Optional[Path] = None,
+) -> list[MCPServerStdio]:
+    """Launch and connect MCP servers over stdio.
+
+    Servers are tied to the passed AsyncExitStack — closing the stack shuts
+    them down. A server that fails to start is skipped with a log line rather
+    than failing the whole task.
+
+    Duplicate tool names across servers are a hard error in the SDK, so we
+    dedupe: the first server to expose a tool name keeps it; later servers
+    have that name filtered out (logged).
+    """
+    from agents.mcp import create_static_tool_filter
+
+    servers: list[MCPServerStdio] = []
+    seen_tools: set[str] = set()
+    for d in definitions:
+        try:
+            server = PathTranslatingMCPServer(
+                params={
+                    "command": d["command"],
+                    "args": d.get("args", []),
+                    "env": d.get("env") or None,
+                    "cwd": d.get("cwd"),
+                },
+                cache_tools_list=True,
+                name=d["name"],
+            )
+            server.path_root = path_root
+            await stack.enter_async_context(server)
+            tools = await server.list_tools()
+            names = [t.name for t in tools]
+            allowed = [n for n in names if n not in seen_tools]
+            dropped = sorted(set(names) - set(allowed))
+            if dropped:
+                logger.warning(
+                    "MCP server %r: dropping duplicate tools %s (already "
+                    "provided by an earlier server).", d["name"], dropped,
+                )
+                server.tool_filter = create_static_tool_filter(
+                    allowed_tool_names=allowed
+                )
+            seen_tools.update(allowed)
+            servers.append(server)
+        except Exception:
+            logger.exception("MCP server %r failed to start; skipping.", d.get("name"))
+    return servers
+
+
+# ---------------------------------------------------------------------------
+# Model resolution
+# ---------------------------------------------------------------------------
 
 
 def _resolve_model(tenant: Tenant, settings: Settings, override: Optional[str]):
@@ -98,85 +366,147 @@ def _resolve_model(tenant: Tenant, settings: Settings, override: Optional[str]):
     return OpenAIResponsesModel(model=model_name, openai_client=client)
 
 
-def _build_worker_agent(
-    tenant: Tenant, settings: Settings, model_override: Optional[str]
-) -> SandboxAgent:
-    return SandboxAgent(
-        name=f"worker[{tenant.id}]",
-        model=_resolve_model(tenant, settings, model_override),
-        instructions=WORKER_INSTRUCTIONS,
-        default_manifest=build_manifest(tenant, settings),
-        capabilities=Capabilities.default(),
-    )
+# ---------------------------------------------------------------------------
+# Host-execution tools (the sandbox replacement)
+# ---------------------------------------------------------------------------
 
 
-def _make_invoke_subagents_tool(
-    tenant: Tenant, settings: Settings, model_override: Optional[str]
-):
-    """Build the orchestrator's subagent-spawning tool, bound to this tenant."""
-    # Workers get a smaller turn budget so a runaway worker can't burn the
-    # orchestrator's whole allowance.
-    worker_max_turns = max(5, (tenant.max_turns or settings.max_turns) // 2)
+def _resolve_in_root(root: Path, path_str: str) -> Path:
+    """Resolve a user/model-supplied path and require it to be under `root`.
+
+    Accepts paths relative to the workspace root, absolute paths under it,
+    and legacy 'repo/...' paths from old sandbox-era sessions.
+    """
+    cleaned = path_str.strip()
+    if cleaned == "repo":
+        cleaned = "."
+    elif cleaned.startswith("repo/"):
+        cleaned = cleaned[len("repo/"):]
+    p = Path(cleaned)
+    candidate = p if p.is_absolute() else root / p
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to(root.resolve())
+    except ValueError:
+        raise ValueError(
+            f"Path {path_str!r} is outside the workspace root {root}. "
+            "Use a path relative to the workspace root."
+        )
+    return resolved
+
+
+def _truncate(text: str, limit: int = TOOL_OUTPUT_MAX_CHARS) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + f"\n\n[truncated at {limit} chars]"
+
+
+def _make_workspace_tools(root: Path) -> list:
+    """Build the host-execution tool set, all confined to `root`."""
 
     @function_tool
-    async def invoke_subagents(subtasks: list[str]) -> str:
-        """Spawn one or more worker subagents and return their combined reports.
+    async def run_shell(cmd: str, timeout_seconds: int = SHELL_TIMEOUT_S) -> str:
+        """Run a shell command with the workspace root as working directory.
 
-        Pass MULTIPLE subtasks in one call to run them in parallel. Only do this
-        when the subtasks are independent — e.g. read-only exploration, or
-        writes to non-overlapping files. For dependent work, call this tool
-        repeatedly with one subtask at a time so the orchestrator can react to
-        each report before the next step.
-
-        Each subtask string is the full instruction the worker will see, so
-        write it as a self-contained prompt: state the goal, the files in
-        scope, and what to report back.
+        Use for listing/searching files (ls, rg, find), running tests/builds,
+        git, and anything else command-line. Output (stdout+stderr) is
+        truncated to ~20k chars — pipe through head/tail/rg for large output.
+        The command runs on the real host: destructive commands have real
+        effects, so be careful and stay inside the workspace.
         """
-        async def _run_one(idx: int, task_text: str) -> str:
-            worker = _build_worker_agent(tenant, settings, model_override)
-            client = make_sandbox_client(settings)
-            run_config = RunConfig(
-                sandbox=SandboxRunConfig(client=client),
-                workflow_name=f"tenant:{tenant.id}:worker:{idx}",
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                cmd,
+                cwd=str(root),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
             )
-            result = await Runner.run(
-                worker,
-                task_text,
-                run_config=run_config,
-                max_turns=worker_max_turns,
-            )
-            return f"[subagent {idx}] {result.final_output}"
-
-        outputs = await asyncio.gather(
-            *(_run_one(i, t) for i, t in enumerate(subtasks)),
-            return_exceptions=True,
-        )
-        rendered = []
-        for i, out in enumerate(outputs):
-            if isinstance(out, Exception):
-                rendered.append(
-                    f"[subagent {i}] FAILED: {type(out).__name__}: {out}"
+            try:
+                out, _ = await asyncio.wait_for(
+                    proc.communicate(), timeout=timeout_seconds
                 )
-            else:
-                rendered.append(out)
-        return "\n\n".join(rendered)
+            except asyncio.TimeoutError:
+                proc.kill()
+                return f"ERROR: command timed out after {timeout_seconds}s: {cmd}"
+            text = out.decode("utf-8", errors="replace")
+            return _truncate(
+                f"exit code: {proc.returncode}\n{text}"
+                if text
+                else f"exit code: {proc.returncode} (no output)"
+            )
+        except Exception as exc:
+            return f"ERROR running command: {type(exc).__name__}: {exc}"
 
-    return invoke_subagents
+    @function_tool
+    async def read_file(path: str, offset: int = 0, limit: int = 1000) -> str:
+        """Read a text file from the workspace.
+
+        `offset` is the 0-based first line, `limit` the max number of lines.
+        Paths are relative to the workspace root.
+        """
+        try:
+            target = _resolve_in_root(root, path)
+            lines = target.read_text("utf-8", errors="replace").splitlines()
+            window = lines[offset : offset + limit]
+            numbered = "\n".join(
+                f"{i + offset + 1}\t{line}" for i, line in enumerate(window)
+            )
+            header = f"{target} ({len(lines)} lines total, showing {offset + 1}-{offset + len(window)})"
+            return _truncate(f"{header}\n{numbered}")
+        except Exception as exc:
+            return f"ERROR: {type(exc).__name__}: {exc}"
+
+    @function_tool
+    async def write_file(path: str, content: str) -> str:
+        """Create or overwrite a file in the workspace with `content`.
+
+        Parent directories are created as needed. This writes to the REAL
+        file — prefer edit_file for small changes to existing files.
+        """
+        try:
+            target = _resolve_in_root(root, path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, "utf-8")
+            return f"Wrote {len(content)} chars to {target}"
+        except Exception as exc:
+            return f"ERROR: {type(exc).__name__}: {exc}"
+
+    @function_tool
+    async def edit_file(path: str, old_string: str, new_string: str) -> str:
+        """Replace an exact string in a file (must match exactly once).
+
+        Read the file first so old_string matches the current content
+        precisely, including whitespace. For multiple identical occurrences,
+        include more surrounding context to make the match unique.
+        """
+        try:
+            target = _resolve_in_root(root, path)
+            text = target.read_text("utf-8")
+            count = text.count(old_string)
+            if count == 0:
+                return "ERROR: old_string not found in file. Read the file and retry with the exact current text."
+            if count > 1:
+                return f"ERROR: old_string matches {count} times; add surrounding context to make it unique."
+            target.write_text(text.replace(old_string, new_string, 1), "utf-8")
+            return f"Edited {target}"
+        except Exception as exc:
+            return f"ERROR: {type(exc).__name__}: {exc}"
+
+    return [run_shell, read_file, write_file, edit_file]
 
 
 def _make_webfetch_tool():
-    """Fetch a URL from the host process (not the sandbox).
-
-    Note: this runs in the FastAPI server's network namespace, not the tenant's
-    sandbox. If you need per-tenant network isolation, replace this with a
-    shell `curl` call inside the sandbox instead.
-    """
+    """Fetch a URL. Runs in this process, like everything else now."""
     @function_tool
     async def webfetch(url: str) -> str:
         """Fetch the body of a URL (HTTP/HTTPS only) and return it as text.
 
-        Use for public docs, release notes, or API responses the workspace
-        doesn't contain. Response is truncated to ~200KB.
+        Use this to answer any question needing public web content: docs,
+        reference data, news, or open JSON APIs. Prefer static pages and API
+        endpoints (Wikipedia REST, open-data APIs) over JavaScript-heavy sites,
+        which return little useful text. If a page is JS-heavy, try fetching
+        `https://r.jina.ai/<original-url>` for a text rendering. Response is
+        truncated to ~200KB.
         """
         if not url.startswith(("http://", "https://")):
             return f"ERROR: webfetch only supports http(s) URLs (got: {url!r})"
@@ -236,23 +566,124 @@ def _make_todo_tools():
     return todo_write, todo_read
 
 
-def build_sandbox_agent(
-    tenant: Tenant, settings: Settings, model_override: Optional[str] = None
-) -> SandboxAgent:
+# ---------------------------------------------------------------------------
+# Agents
+# ---------------------------------------------------------------------------
+
+
+def resolve_workspace_root(
+    tenant: Tenant, settings: Settings, workspace_override: Optional[Path]
+) -> Path:
+    """The real host directory the agent works in."""
+    if workspace_override is not None:
+        return workspace_override.resolve()
+    if tenant.workspace_kind != "local_dir":
+        raise ValueError(
+            f"workspace_kind {tenant.workspace_kind!r} is not supported in "
+            "direct-host mode; use local_dir or a workspace override."
+        )
+    return resolve_local_workspace(tenant, settings).resolve()
+
+
+def _build_worker_agent(
+    tenant: Tenant,
+    settings: Settings,
+    model_override: Optional[str],
+    root: Path,
+) -> Agent:
+    return Agent(
+        name=f"worker[{tenant.id}]",
+        model=_resolve_model(tenant, settings, model_override),
+        instructions=_with_agents_md(
+            WORKER_INSTRUCTIONS_TEMPLATE.format(root=root), _load_agents_md(root)
+        ),
+        tools=_make_workspace_tools(root),
+    )
+
+
+def _make_invoke_subagents_tool(
+    tenant: Tenant,
+    settings: Settings,
+    model_override: Optional[str],
+    root: Path,
+):
+    """Build the orchestrator's subagent-spawning tool, bound to this tenant."""
+    # Workers get a smaller turn budget so a runaway worker can't burn the
+    # orchestrator's whole allowance.
+    worker_max_turns = max(5, (tenant.max_turns or settings.max_turns) // 2)
+
+    @function_tool
+    async def invoke_subagents(subtasks: list[str]) -> str:
+        """Spawn one or more worker subagents and return their combined reports.
+
+        Pass MULTIPLE subtasks in one call to run them in parallel. Only do this
+        when the subtasks are independent — e.g. read-only exploration, or
+        writes to non-overlapping files. For dependent work, call this tool
+        repeatedly with one subtask at a time so the orchestrator can react to
+        each report before the next step.
+
+        Each subtask string is the full instruction the worker will see, so
+        write it as a self-contained prompt: state the goal, the files in
+        scope, and what to report back.
+        """
+        async def _run_one(idx: int, task_text: str) -> str:
+            worker = _build_worker_agent(tenant, settings, model_override, root)
+            run_config = RunConfig(workflow_name=f"tenant:{tenant.id}:worker:{idx}")
+            result = await Runner.run(
+                worker,
+                task_text,
+                run_config=run_config,
+                max_turns=worker_max_turns,
+            )
+            return f"[subagent {idx}] {result.final_output}"
+
+        outputs = await asyncio.gather(
+            *(_run_one(i, t) for i, t in enumerate(subtasks)),
+            return_exceptions=True,
+        )
+        rendered = []
+        for i, out in enumerate(outputs):
+            if isinstance(out, Exception):
+                rendered.append(
+                    f"[subagent {i}] FAILED: {type(out).__name__}: {out}"
+                )
+            else:
+                rendered.append(out)
+        return "\n\n".join(rendered)
+
+    return invoke_subagents
+
+
+def build_agent(
+    tenant: Tenant,
+    settings: Settings,
+    model_override: Optional[str] = None,
+    root: Optional[Path] = None,
+    mcp_servers: Optional[list] = None,
+    agents_md: Optional[str] = None,
+) -> Agent:
+    assert root is not None
     todo_write, todo_read = _make_todo_tools()
-    return SandboxAgent(
+    return Agent(
         name=f"coding-agent[{tenant.id}]",
         model=_resolve_model(tenant, settings, model_override),
-        instructions=ORCHESTRATOR_INSTRUCTIONS,
-        default_manifest=build_manifest(tenant, settings),
-        capabilities=Capabilities.default(),
+        instructions=_with_agents_md(
+            ORCHESTRATOR_INSTRUCTIONS_TEMPLATE.format(root=root), agents_md
+        ),
+        mcp_servers=mcp_servers or [],
         tools=[
-            _make_invoke_subagents_tool(tenant, settings, model_override),
+            *_make_workspace_tools(root),
+            _make_invoke_subagents_tool(tenant, settings, model_override, root),
             _make_webfetch_tool(),
             todo_write,
             todo_read,
         ],
     )
+
+
+# ---------------------------------------------------------------------------
+# Streaming event summarizer
+# ---------------------------------------------------------------------------
 
 
 def _summarize_event(event) -> Optional[dict]:
@@ -311,23 +742,41 @@ def _summarize_event(event) -> Optional[dict]:
     return {"type": etype}
 
 
+# ---------------------------------------------------------------------------
+# Run entry points (signatures unchanged from the sandbox era)
+# ---------------------------------------------------------------------------
+
+
 async def run_coding_task_stream(
     tenant: Tenant,
     prompt: str,
     settings: Settings,
     model_override: Optional[str] = None,
     session: Optional[SessionABC] = None,
+    workspace_override: Optional[Path] = None,
+    mcp_definitions: Optional[list[dict]] = None,
 ):
     """Async generator: yields (event_type, payload_dict) for one task.
 
     The last yielded event is always ("done", {"output": ..., "model": ...}).
     """
-    agent = build_sandbox_agent(tenant, settings, model_override)
-    client = make_sandbox_client(settings)
-    run_config = RunConfig(
-        sandbox=SandboxRunConfig(client=client),
-        workflow_name=f"tenant:{tenant.id}",
+    root = resolve_workspace_root(tenant, settings, workspace_override)
+    prompt, instructions_md, agents_md_info = await _prepare_agents_md(
+        root, prompt, session
     )
+    yield "workspace_instructions", {
+        "type": "workspace_instructions",
+        "source": "AGENTS.md",
+        **agents_md_info,
+    }
+    mcp_stack = AsyncExitStack()
+    defs = mcp_definitions if mcp_definitions is not None else _load_mcp_definitions(settings)
+    mcp_servers = await connect_mcp_servers(defs, mcp_stack, path_root=root)
+    agent = build_agent(
+        tenant, settings, model_override, root=root, mcp_servers=mcp_servers,
+        agents_md=instructions_md,
+    )
+    run_config = RunConfig(workflow_name=f"tenant:{tenant.id}")
     max_turns = tenant.max_turns or settings.max_turns
 
     streamed = Runner.run_streamed(
@@ -345,13 +794,8 @@ async def run_coding_task_stream(
             "output": str(streamed.final_output),
         }
 
-    # Honor the per-task timeout the same way run_coding_task does.
-    async def _with_timeout():
-        async for ev in _iter():
-            yield ev
-
     timeout = settings.task_timeout_seconds
-    agen = _with_timeout()
+    agen = _iter()
     try:
         while True:
             try:
@@ -364,6 +808,8 @@ async def run_coding_task_stream(
             "error": "TimeoutError",
             "detail": f"Task exceeded {timeout}s.",
         }
+    finally:
+        await mcp_stack.aclose()
 
 
 async def run_coding_task(
@@ -372,23 +818,36 @@ async def run_coding_task(
     settings: Settings,
     model_override: Optional[str] = None,
     session: Optional[SessionABC] = None,
+    workspace_override: Optional[Path] = None,
+    mcp_definitions: Optional[list[dict]] = None,
 ) -> TaskResult:
-    """Run one coding task for a tenant in a fresh, isolated sandbox session."""
-    agent = build_sandbox_agent(tenant, settings, model_override)
-    client = make_sandbox_client(settings)
+    """Run one coding task for a tenant directly in the host workspace."""
+    root = resolve_workspace_root(tenant, settings, workspace_override)
+    prompt, instructions_md, _ = await _prepare_agents_md(root, prompt, session)
+    async with AsyncExitStack() as mcp_stack:
+        defs = (
+            mcp_definitions
+            if mcp_definitions is not None
+            else _load_mcp_definitions(settings)
+        )
+        mcp_servers = await connect_mcp_servers(defs, mcp_stack, path_root=root)
+        agent = build_agent(
+            tenant, settings, model_override, root=root, mcp_servers=mcp_servers,
+            agents_md=instructions_md,
+        )
+        run_config = RunConfig(workflow_name=f"tenant:{tenant.id}")
+        max_turns = tenant.max_turns or settings.max_turns
 
-    run_config = RunConfig(
-        sandbox=SandboxRunConfig(client=client),
-        workflow_name=f"tenant:{tenant.id}",
-    )
-    max_turns = tenant.max_turns or settings.max_turns
-
-    result = await asyncio.wait_for(
-        Runner.run(
-            agent, prompt, run_config=run_config, max_turns=max_turns, session=session
-        ),
-        timeout=settings.task_timeout_seconds,
-    )
+        result = await asyncio.wait_for(
+            Runner.run(
+                agent,
+                prompt,
+                run_config=run_config,
+                max_turns=max_turns,
+                session=session,
+            ),
+            timeout=settings.task_timeout_seconds,
+        )
 
     model_name = model_override or tenant.model or settings.default_model
     return TaskResult(tenant_id=tenant.id, model=model_name, output=result.final_output)

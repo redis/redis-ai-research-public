@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local config & state (not for sharing)
+.env
+_workspaces/
+_workspace_state.json
+
+# OS
+.DS_Store

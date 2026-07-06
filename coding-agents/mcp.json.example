@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "my-tools": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/absolute/path/to/your/mcp-server-project",
+        "python",
+        "/absolute/path/to/your/mcp-server-project/servers/my_server.py"
+      ]
+    }
+  }
+}

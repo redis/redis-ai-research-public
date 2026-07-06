@@ -4,25 +4,22 @@ Everything that makes the agent *per-tenant* lives here:
 
   * Tenant            - immutable description of one customer org.
   * TenantRegistry    - maps a presented API key -> Tenant.
-  * build_manifest    - the per-tenant workspace handed to the sandbox.
-  * make_sandbox_client - a *fresh* sandbox backend per task, so one tenant's
-                          run can never see another's files.
+  * resolve_local_workspace / resolve_workspace_override - which real host
+    directory a tenant's agent works in, and whether a requested override
+    is allowed (allowed_roots / ALLOW_ANY_WORKSPACE_PATH).
 
-Isolation model: one sandbox session per task. For the "docker" backend that
-is one ephemeral container per request; for hosted providers it would be one
-ephemeral micro-VM. The Manifest decides what (and only what) gets mounted into
-that workspace for the tenant making the request.
+Execution model: direct host execution — no sandbox. The agent's tools run in
+the service process, confined to the tenant's workspace directory by path
+checks in app/agent.py. Process-level isolation is handled outside this
+service.
 """
 from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
-
-from agents.sandbox import Manifest
-from agents.sandbox.entries import GitRepo, LocalDir
 
 from .config import Settings
 
@@ -41,6 +38,11 @@ class Tenant:
     model: Optional[str] = None
     openai_api_key: Optional[str] = None
     max_turns: Optional[int] = None
+    # Host paths under which this tenant is allowed to point the agent via the
+    # request-level `workspace_path` override. Paths (and their symlinks) must
+    # resolve under one of these. Empty means overrides are refused unless the
+    # ALLOW_ANY_WORKSPACE_PATH dev flag is set.
+    allowed_roots: list[str] = field(default_factory=list)
 
 
 def _hash_key(api_key: str) -> str:
@@ -96,6 +98,7 @@ class TenantRegistry:
                 model=rec.get("model"),
                 openai_api_key=rec.get("openai_api_key"),
                 max_turns=rec.get("max_turns"),
+                allowed_roots=list(rec.get("allowed_roots", [])),
             )
             self._by_hash[key_hash] = tenant
 
@@ -123,41 +126,55 @@ def resolve_local_workspace(tenant: Tenant, settings: Settings) -> Path:
     return path
 
 
-def build_manifest(tenant: Tenant, settings: Settings) -> Manifest:
-    """The workspace mounted into the tenant's sandbox session.
+class WorkspacePathError(ValueError):
+    """Requested workspace_path is not allowed for this tenant."""
 
-    The entry key ("repo") is the directory name the agent sees inside the
-    sandbox, e.g. the model edits files under `repo/`.
+
+def resolve_workspace_override(
+    tenant: Tenant, requested: str, settings: Settings
+) -> Path:
+    """Resolve and authorize a per-request workspace_path.
+
+    Rules, in order:
+      1. The path (and any symlinks) must resolve to a real, existing directory.
+      2. If ALLOW_ANY_WORKSPACE_PATH is on, that's enough — dev mode.
+      3. Otherwise the resolved path must be under one of `tenant.allowed_roots`
+         (also symlink-resolved). Root list empty -> refused.
+
+    We use Path.resolve(strict=True) so symlinks are followed before the
+    subpath check, closing the "symlink inside allowed_root that points out"
+    escape.
     """
-    if tenant.workspace_kind == "git_repo":
-        return Manifest(
-            entries={"repo": GitRepo(repo=tenant.workspace_source, ref=tenant.git_ref)}
-        )
-    if tenant.workspace_kind == "local_dir":
-        path = resolve_local_workspace(tenant, settings)
-        return Manifest(entries={"repo": LocalDir(src=str(path))})
-    raise ValueError(f"Unknown workspace_kind: {tenant.workspace_kind!r}")
+    try:
+        target = Path(requested).expanduser().resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise WorkspacePathError(
+            f"workspace_path does not exist: {requested!r}"
+        ) from exc
+    if not target.is_dir():
+        raise WorkspacePathError(f"workspace_path is not a directory: {target}")
 
+    if settings.allow_any_workspace_path:
+        return target
 
-def make_sandbox_client(settings: Settings):
-    """Create a FRESH sandbox client for a single task.
-
-    A new client per task means a new isolated session per task, so tenants
-    never share a workspace.
-    """
-    if settings.sandbox_backend == "docker":
-        # NOTE: verify these option field names against your installed SDK
-        # version (docs: ref/sandbox/sandboxes/docker). Requires
-        # `pip install "openai-agents[docker]"` and a running Docker daemon.
-        from agents.sandbox.sandboxes.docker import (
-            DockerSandboxClient,
-            DockerSandboxClientOptions,
+    if not tenant.allowed_roots:
+        raise WorkspacePathError(
+            "This tenant has no allowed_roots configured; workspace_path "
+            "overrides are refused. Set allowed_roots on the tenant, or turn "
+            "on ALLOW_ANY_WORKSPACE_PATH for dev."
         )
 
-        return DockerSandboxClient(
-            DockerSandboxClientOptions(image=settings.docker_image)
-        )
+    for root in tenant.allowed_roots:
+        try:
+            root_p = Path(root).expanduser().resolve(strict=True)
+        except FileNotFoundError:
+            continue
+        try:
+            target.relative_to(root_p)
+        except ValueError:
+            continue
+        return target
 
-    from agents.sandbox.sandboxes.unix_local import UnixLocalSandboxClient
-
-    return UnixLocalSandboxClient()
+    raise WorkspacePathError(
+        f"workspace_path {target} is not under any of this tenant's allowed_roots."
+    )

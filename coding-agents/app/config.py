@@ -1,12 +1,12 @@
 """Application settings, loaded from environment / .env file.
 
 Env var names match the field names (case-insensitive), e.g. OPENAI_API_KEY,
-DEFAULT_MODEL, SANDBOX_BACKEND, etc.
+DEFAULT_MODEL, etc.
 """
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal, Optional
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,16 +22,6 @@ class Settings(BaseSettings):
     # Model every tenant uses unless they override it. Set this to a model your
     # account can access (model names change over time).
     default_model: str = "gpt-5.4"
-
-    # Where the agent's tools actually execute.
-    #   unix_local -> runs on this host's filesystem. Fine for local dev,
-    #                 NOT isolation. Do not use for real multi-tenant prod.
-    #   docker     -> one ephemeral container per task. Requires
-    #                 `pip install "openai-agents[docker]"` and a Docker daemon.
-    sandbox_backend: Literal["unix_local", "docker"] = "unix_local"
-
-    # Base image for the docker sandbox backend.
-    docker_image: str = "python:3.12-slim"
 
     # Safety rails per task.
     max_turns: int = 30
@@ -50,6 +40,17 @@ class Settings(BaseSettings):
     # Example: postgresql://user:pass@localhost:5432/agent
     database_url: Optional[str] = None
     db_pool_max_size: int = 10
+
+    # DEV ONLY. When true, `workspace_path` on a task request is accepted for
+    # ANY existing directory on the host — no allowed_roots check. Do not
+    # enable in multi-tenant prod; it lets any authenticated tenant point the
+    # agent at any host path the server process can read.
+    allow_any_workspace_path: bool = False
+
+    # Optional path to an MCP config file (mcp.json). Each server listed there
+    # is launched over stdio and its tools are attached to the orchestrator.
+    # NOTE: stdio MCP servers run in the SERVER process, outside the sandbox.
+    mcp_config: Optional[str] = None
 
 
 @lru_cache
