@@ -33,12 +33,20 @@ logger = logging.getLogger("coding_agent.sessions")
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS agent_sessions (
-    id         TEXT PRIMARY KEY,
-    tenant_id  TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    id             TEXT PRIMARY KEY,
+    tenant_id      TEXT NOT NULL,
+    workspace_path TEXT,
+    status         TEXT NOT NULL DEFAULT 'open',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_active_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE agent_sessions ADD COLUMN IF NOT EXISTS workspace_path TEXT;
+ALTER TABLE agent_sessions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open';
+ALTER TABLE agent_sessions ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ NOT NULL DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_agent_sessions_tenant
     ON agent_sessions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_agent_sessions_resume
+    ON agent_sessions(tenant_id, workspace_path, status, last_active_at DESC);
 
 CREATE TABLE IF NOT EXISTS agent_session_items (
     id          BIGSERIAL PRIMARY KEY,
@@ -170,31 +178,88 @@ class PostgresSession(SessionABC):
 
 
 async def create_session_row(
-    pool: asyncpg.Pool, tenant: Tenant, session_id: str
+    pool: asyncpg.Pool,
+    tenant: Tenant,
+    session_id: str,
+    workspace_path: Optional[str] = None,
 ) -> None:
     async with pool.acquire() as conn:
         await conn.execute(
-            "INSERT INTO agent_sessions(id, tenant_id) VALUES($1, $2)",
+            """
+            INSERT INTO agent_sessions(id, tenant_id, workspace_path)
+            VALUES($1, $2, $3)
+            """,
             session_id,
             tenant.id,
+            workspace_path,
         )
 
 
-async def assert_session_owned_by(
+async def get_session_record(
     pool: asyncpg.Pool, tenant: Tenant, session_id: str
-) -> None:
-    """Raise 404 if the session does not exist OR belongs to a different tenant.
+) -> dict[str, Any]:
+    """Return the session row, or raise 404 if missing / other tenant's.
 
     Same status code in both cases so attackers can't enumerate session ids.
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT tenant_id FROM agent_sessions WHERE id = $1",
+            """
+            SELECT id, tenant_id, workspace_path, status, created_at, last_active_at
+              FROM agent_sessions WHERE id = $1
+            """,
             session_id,
         )
     if row is None or row["tenant_id"] != tenant.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Session not found."
+        )
+    return dict(row)
+
+
+async def assert_session_owned_by(
+    pool: asyncpg.Pool, tenant: Tenant, session_id: str
+) -> None:
+    await get_session_record(pool, tenant, session_id)
+
+
+async def find_latest_open_session(
+    pool: asyncpg.Pool, tenant: Tenant, workspace_path: Optional[str]
+) -> Optional[str]:
+    """Most-recently-active OPEN session bound to this folder (None = default)."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT id FROM agent_sessions
+             WHERE tenant_id = $1
+               AND workspace_path IS NOT DISTINCT FROM $2
+               AND status = 'open'
+             ORDER BY last_active_at DESC
+             LIMIT 1
+            """,
+            tenant.id,
+            workspace_path,
+        )
+    return row["id"] if row else None
+
+
+async def touch_session(pool: asyncpg.Pool, session_id: str) -> None:
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE agent_sessions SET last_active_at = now() WHERE id = $1",
+            session_id,
+        )
+
+
+async def close_session_for_tenant(
+    pool: asyncpg.Pool, tenant: Tenant, session_id: str
+) -> None:
+    """Mark closed (after ownership check). History is kept; use DELETE to purge."""
+    await get_session_record(pool, tenant, session_id)
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE agent_sessions SET status = 'closed' WHERE id = $1",
+            session_id,
         )
 
 
@@ -204,14 +269,23 @@ async def list_sessions_for_tenant(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT id, created_at
+            SELECT id, workspace_path, status, created_at, last_active_at
               FROM agent_sessions
              WHERE tenant_id = $1
-             ORDER BY created_at DESC
+             ORDER BY last_active_at DESC
             """,
             tenant.id,
         )
-    return [{"session_id": r["id"], "created_at": r["created_at"].isoformat()} for r in rows]
+    return [
+        {
+            "session_id": r["id"],
+            "workspace_path": r["workspace_path"],
+            "status": r["status"],
+            "created_at": r["created_at"].isoformat(),
+            "last_active_at": r["last_active_at"].isoformat(),
+        }
+        for r in rows
+    ]
 
 
 async def delete_session_for_tenant(
