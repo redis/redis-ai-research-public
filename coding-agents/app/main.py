@@ -31,8 +31,8 @@ from pydantic import BaseModel, Field
 from contextlib import AsyncExitStack
 
 from .agent import (
-    connect_mcp_servers,
     discover_mcp_definitions,
+    mcp_pool,
     run_coding_task,
     run_coding_task_stream,
 )
@@ -77,6 +77,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        await mcp_pool.close_all()
         if app.state.pool is not None:
             await app.state.pool.close()
 
@@ -136,7 +137,7 @@ class McpServerInfo(BaseModel):
 
 class McpResponse(BaseModel):
     tenant_id: str
-    path: str | None
+    sources: list[str]
     servers: list[McpServerInfo] = []
 
 
@@ -247,30 +248,55 @@ def _resolve_workspace_or_400(
 
 
 def _mcp_key(tenant: Tenant) -> str:
-    """Store key for a tenant's MCP path (shares the workspace-state store)."""
+    """Store key for a tenant's MCP sources (shares the workspace-state store)."""
     return f"{tenant.id}#mcp"
+
+
+async def _get_mcp_sources(tenant: Tenant, store: WorkspaceStateStore) -> list[str]:
+    """The tenant's registered MCP sources (paths or URLs).
+
+    Stored as a JSON list; a legacy single-path string is upgraded on read.
+    """
+    stored = await store.get(_mcp_key(tenant))
+    if stored is None:
+        return []
+    try:
+        parsed = json.loads(stored)
+        if isinstance(parsed, list):
+            return [str(s) for s in parsed]
+    except json.JSONDecodeError:
+        pass
+    return [stored]  # legacy single path
+
+
+async def _set_mcp_sources(
+    tenant: Tenant, store: WorkspaceStateStore, sources: list[str]
+) -> None:
+    if sources:
+        await store.set(_mcp_key(tenant), json.dumps(sources))
+    else:
+        await store.clear(_mcp_key(tenant))
+
+
+def _discover_sources(sources: list[str]) -> list[dict]:
+    """Merge definitions from every source; bad sources are skipped with a log."""
+    definitions: list[dict] = []
+    for src_item in sources:
+        try:
+            definitions.extend(discover_mcp_definitions(src_item))
+        except ValueError:
+            logger.warning("MCP source %r is no longer valid; skipping.", src_item)
+    return definitions
 
 
 async def _effective_mcp_definitions(
     tenant: Tenant, store: WorkspaceStateStore
 ) -> list[dict] | None:
-    """Per-tenant MCP servers set via PUT /v1/mcp, else None (static fallback).
-
-    A stored path that no longer resolves is skipped with a warning rather
-    than failing the task.
-    """
-    stored = await store.get(_mcp_key(tenant))
-    if stored is None:
+    """Merged definitions from all registered sources, else None (static fallback)."""
+    sources = await _get_mcp_sources(tenant, store)
+    if not sources:
         return None
-    try:
-        return discover_mcp_definitions(stored)
-    except ValueError:
-        logger.warning(
-            "Stored MCP path %r for tenant %s is no longer valid; ignoring.",
-            stored,
-            tenant.id,
-        )
-        return None
+    return _discover_sources(sources)
 
 
 async def _effective_workspace(
@@ -404,46 +430,89 @@ async def clear_workspace(
 # ---------------------------------------------------------------------------
 
 
+async def _probe_sources(tenant: Tenant, sources: list[str]) -> list[McpServerInfo]:
+    """Get (or launch) the tenant's pooled servers and list their tools.
+
+    Goes through the shared MCPPool so probing never spawns a duplicate of an
+    already-running stateful server (e.g. BrowserMCP).
+    """
+    definitions = _discover_sources(sources)
+    servers = await mcp_pool.get(tenant.id, definitions)
+    infos: list[McpServerInfo] = []
+    for srv in servers:
+        tools = await srv.list_tools()
+        infos.append(McpServerInfo(name=srv.name, tools=[t.name for t in tools]))
+    return infos
+
+
+def _authorize_mcp_source(tenant: Tenant, source: str, settings: Settings) -> None:
+    """Local paths are gated like workspace paths; URLs pass through."""
+    if source.startswith(("http://", "https://")):
+        return
+    probe = Path(source).expanduser()
+    probe_dir = probe if probe.is_dir() else probe.parent
+    _resolve_workspace_or_400(tenant, str(probe_dir), settings)
+
+
 @app.put("/v1/mcp", response_model=McpResponse)
-async def set_mcp(
+async def replace_mcp_sources(
     body: McpRequest,
     tenant: Tenant = Depends(get_current_tenant),
     settings: Settings = Depends(get_settings),
     store: WorkspaceStateStore = Depends(get_ws_store),
 ) -> McpResponse:
-    """Enable MCP servers from a path for all subsequent tasks by this tenant.
-
-    The path is authorized like a workspace path (allowed_roots /
-    ALLOW_ANY_WORKSPACE_PATH), then each discovered server is launched once to
-    verify it starts and to report its tools.
-    """
-    # Authorize: the path (or its parent, for a file) must be an allowed dir.
-    probe = Path(body.path).expanduser()
-    probe_dir = probe if probe.is_dir() else probe.parent
-    _resolve_workspace_or_400(tenant, str(probe_dir), settings)
-
+    """REPLACE the source list with this single source (path or URL)."""
+    _authorize_mcp_source(tenant, body.path, settings)
     try:
-        definitions = discover_mcp_definitions(body.path)
+        discover_mcp_definitions(body.path)
     except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
-
-    # Validation pass: actually launch each server and list its tools.
-    servers_info: list[McpServerInfo] = []
-    async with AsyncExitStack() as stack:
-        servers = await connect_mcp_servers(definitions, stack)
-        for srv in servers:
-            tools = await srv.list_tools()
-            servers_info.append(
-                McpServerInfo(name=srv.name, tools=[t.name for t in tools])
-            )
-    if not servers_info:
+    await mcp_pool.invalidate(tenant.id)
+    servers = await _probe_sources(tenant, [body.path])
+    if not servers:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            detail="No MCP server at that path could be started (see server logs).",
+            detail="No MCP server at that source could be started (see server logs).",
         )
+    await _set_mcp_sources(tenant, store, [body.path])
+    return McpResponse(tenant_id=tenant.id, sources=[body.path], servers=servers)
 
-    await store.set(_mcp_key(tenant), body.path)
-    return McpResponse(tenant_id=tenant.id, path=body.path, servers=servers_info)
+
+@app.post("/v1/mcp/sources", response_model=McpResponse)
+async def add_mcp_source(
+    body: McpRequest,
+    tenant: Tenant = Depends(get_current_tenant),
+    settings: Settings = Depends(get_settings),
+    store: WorkspaceStateStore = Depends(get_ws_store),
+) -> McpResponse:
+    """ADD a source (path or URL) alongside the existing ones."""
+    _authorize_mcp_source(tenant, body.path, settings)
+    try:
+        discover_mcp_definitions(body.path)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    sources = await _get_mcp_sources(tenant, store)
+    if body.path not in sources:
+        sources.append(body.path)
+    servers = await _probe_sources(tenant, sources)
+    await _set_mcp_sources(tenant, store, sources)
+    return McpResponse(tenant_id=tenant.id, sources=sources, servers=servers)
+
+
+@app.delete("/v1/mcp/sources", response_model=McpResponse)
+async def remove_mcp_source(
+    path: str,
+    tenant: Tenant = Depends(get_current_tenant),
+    store: WorkspaceStateStore = Depends(get_ws_store),
+) -> McpResponse:
+    """Remove one source by its exact path/URL (query param: ?path=...)."""
+    sources = await _get_mcp_sources(tenant, store)
+    if path not in sources:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Source not registered.")
+    sources.remove(path)
+    await _set_mcp_sources(tenant, store, sources)
+    await mcp_pool.invalidate(tenant.id)
+    return McpResponse(tenant_id=tenant.id, sources=sources, servers=[])
 
 
 @app.get("/v1/mcp", response_model=McpResponse)
@@ -451,27 +520,10 @@ async def get_mcp(
     tenant: Tenant = Depends(get_current_tenant),
     store: WorkspaceStateStore = Depends(get_ws_store),
 ) -> McpResponse:
-    """Show the tenant's MCP servers with their live tool lists.
-
-    Servers are launched fresh (read-only, nothing is stored), so this always
-    reflects the current state of the server files — exactly what the agent
-    will see on its next task.
-    """
-    stored = await store.get(_mcp_key(tenant))
-    servers: list[McpServerInfo] = []
-    if stored is not None:
-        try:
-            definitions = discover_mcp_definitions(stored)
-        except ValueError:
-            definitions = []
-        if definitions:
-            async with AsyncExitStack() as stack:
-                for srv in await connect_mcp_servers(definitions, stack):
-                    tools = await srv.list_tools()
-                    servers.append(
-                        McpServerInfo(name=srv.name, tools=[t.name for t in tools])
-                    )
-    return McpResponse(tenant_id=tenant.id, path=stored, servers=servers)
+    """Launch all registered sources and list their live (deduped) tools."""
+    sources = await _get_mcp_sources(tenant, store)
+    servers = await _probe_sources(tenant, sources) if sources else []
+    return McpResponse(tenant_id=tenant.id, sources=sources, servers=servers)
 
 
 @app.delete("/v1/mcp", response_model=McpResponse)
@@ -479,9 +531,10 @@ async def clear_mcp(
     tenant: Tenant = Depends(get_current_tenant),
     store: WorkspaceStateStore = Depends(get_ws_store),
 ) -> McpResponse:
-    """Disable per-tenant MCP servers (static MCP_CONFIG fallback still applies)."""
-    await store.clear(_mcp_key(tenant))
-    return McpResponse(tenant_id=tenant.id, path=None, servers=[])
+    """Remove ALL per-tenant MCP sources (static MCP_CONFIG fallback still applies)."""
+    await _set_mcp_sources(tenant, store, [])
+    await mcp_pool.invalidate(tenant.id)
+    return McpResponse(tenant_id=tenant.id, sources=[], servers=[])
 
 
 @app.post("/v1/tasks", response_model=TaskResponse)

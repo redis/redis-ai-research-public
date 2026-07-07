@@ -57,6 +57,14 @@ ORCHESTRATOR_INSTRUCTIONS_TEMPLATE = (
     "endpoints) since heavy JavaScript sites return little useful text. If one "
     "source fails, try another phrasing or site before giving up, and cite "
     "which URL your answer came from.\n\n"
+    "When calling tools, apply only the constraints the user actually stated, "
+    "and aim for COMPLETE results. Never add restrictive parameters (fare or "
+    "category exclusions, low result limits) the user did not ask for — and "
+    "check parameter descriptions for filters that are restrictive BY DEFAULT "
+    "and explicitly disable them (e.g. a default-true 'exclude_X' flag should "
+    "be passed as false) unless the user asked for that narrowing. If a "
+    "result set looks suspiciously small or says has_more, broaden or "
+    "paginate before answering. Report the full result set you got.\n\n"
     "You have `todo_write` and `todo_read` tools for tracking multi-step plans. "
     "On non-trivial tasks, call `todo_write` early to lay out the steps, then "
     "update statuses as you go. The list resets each task.\n\n"
@@ -162,11 +170,33 @@ async def _prepare_agents_md(
 
 
 def _parse_mcp_json(path: Path) -> list[dict]:
-    """Parse an mcp.json. Accepts both {"servers": {...}} and the Claude-style
-    {"mcpServers": {...}} key."""
-    data = json.loads(path.read_text("utf-8"))
-    servers = data.get("servers") or data.get("mcpServers") or {}
-    return [{"name": name, **cfg} for name, cfg in servers.items()]
+    """Parse an mcp.json into normalized server definitions.
+
+    Accepts {"servers": {...}}, Claude-style {"mcpServers": {...}}, and
+    OpenCode-style {"mcp": {...}} keys. Entry shapes:
+      * local/stdio:  {"command": "npx", "args": [...]} — OpenCode's
+        command-as-array (["npx", "-y", "pkg"]) is normalized too.
+      * remote:       {"url": "https://...", "transport": "http"|"sse",
+                       "headers": {...}} — transport defaults to http
+        (streamable), or sse when the URL ends with /sse.
+    """
+    text = path.read_text("utf-8")
+    # Tolerate .jsonc-style line comments (OpenCode configs use them).
+    text = "\n".join(
+        line for line in text.splitlines() if not line.lstrip().startswith("//")
+    )
+    data = json.loads(text)
+    servers = data.get("servers") or data.get("mcpServers") or data.get("mcp") or {}
+    defs = []
+    for name, cfg in servers.items():
+        d = {"name": name, **cfg}
+        d.pop("type", None)  # OpenCode's "local"/"remote" marker; url implies remote
+        cmd = d.get("command")
+        if isinstance(cmd, list):  # OpenCode style: command is the full argv
+            d["command"] = cmd[0]
+            d["args"] = cmd[1:] + list(d.get("args", []))
+        defs.append(d)
+    return defs
 
 
 def _nearest_pyproject_dir(start: Path) -> Optional[Path]:
@@ -202,6 +232,7 @@ def discover_mcp_definitions(path_str: str) -> list[dict]:
     """Turn a user-supplied path into MCP server definitions.
 
     Accepts:
+      * an http(s) URL              -> one remote server (SSE or streamable-http)
       * an mcp.json file            -> its listed servers
       * a single .py FastMCP script -> one server
       * a directory                 -> its mcp.json if present, else every
@@ -209,6 +240,11 @@ def discover_mcp_definitions(path_str: str) -> list[dict]:
                                        __main__ entrypoint
     Raises ValueError if nothing usable is found.
     """
+    if path_str.startswith(("http://", "https://")):
+        from urllib.parse import urlparse
+        host = urlparse(path_str).hostname or "remote"
+        return [{"name": host.replace(".", "-"), "url": path_str}]
+
     path = Path(path_str).expanduser().resolve()
     if not path.exists():
         raise ValueError(f"MCP path does not exist: {path}")
@@ -285,6 +321,79 @@ class PathTranslatingMCPServer(MCPServerStdio):
         return await super().call_tool(tool_name, arguments, meta)
 
 
+class MCPPool:
+    """Keeps MCP servers alive across runs, per tenant.
+
+    Stateful MCP servers (e.g. BrowserMCP, whose Chrome extension connects to
+    one specific server process) break if relaunched per turn. The pool
+    launches each tenant's servers once and reuses them until the source list
+    changes, a server stops responding, or the service shuts down.
+    """
+
+    def __init__(self) -> None:
+        self._entries: dict[str, tuple[str, AsyncExitStack, list]] = {}
+        self._lock = asyncio.Lock()
+
+    async def get(
+        self,
+        tenant_id: str,
+        definitions: list[dict],
+        path_root: Optional[Path] = None,
+    ) -> list:
+        fingerprint = json.dumps(definitions, sort_keys=True)
+        async with self._lock:
+            entry = self._entries.get(tenant_id)
+            if entry is not None:
+                old_fp, _, servers = entry
+                if old_fp == fingerprint and await self._alive(servers):
+                    for srv in servers:
+                        if isinstance(srv, PathTranslatingMCPServer):
+                            srv.path_root = path_root
+                    return servers
+                await self._close_locked(tenant_id)
+            stack = AsyncExitStack()
+            servers = await connect_mcp_servers(definitions, stack, path_root)
+            self._entries[tenant_id] = (fingerprint, stack, servers)
+            return servers
+
+    @staticmethod
+    async def _alive(servers: list) -> bool:
+        for srv in servers:
+            try:
+                session = getattr(srv, "session", None)
+                if session is not None:
+                    await asyncio.wait_for(session.send_ping(), timeout=5)
+            except Exception:
+                logger.warning("MCP server %r stopped responding; rebuilding.", srv.name)
+                return False
+        return True
+
+    async def invalidate(self, tenant_id: str) -> None:
+        """Close a tenant's servers (call after changing their sources)."""
+        async with self._lock:
+            await self._close_locked(tenant_id)
+
+    async def _close_locked(self, tenant_id: str) -> None:
+        entry = self._entries.pop(tenant_id, None)
+        if entry is None:
+            return
+        try:
+            await entry[1].aclose()
+        except Exception:
+            # MCP stdio cleanup can complain when closed from a different
+            # task than the one that opened it; the child procs still die
+            # with us at shutdown, so log and move on.
+            logger.debug("MCP stack close for %s raised; ignoring.", tenant_id)
+
+    async def close_all(self) -> None:
+        async with self._lock:
+            for tenant_id in list(self._entries):
+                await self._close_locked(tenant_id)
+
+
+mcp_pool = MCPPool()
+
+
 async def connect_mcp_servers(
     definitions: list[dict],
     stack: AsyncExitStack,
@@ -300,23 +409,34 @@ async def connect_mcp_servers(
     dedupe: the first server to expose a tool name keeps it; later servers
     have that name filtered out (logged).
     """
-    from agents.mcp import create_static_tool_filter
+    from agents.mcp import MCPServerSse, MCPServerStreamableHttp, create_static_tool_filter
 
-    servers: list[MCPServerStdio] = []
+    servers: list = []
     seen_tools: set[str] = set()
     for d in definitions:
         try:
-            server = PathTranslatingMCPServer(
-                params={
-                    "command": d["command"],
-                    "args": d.get("args", []),
-                    "env": d.get("env") or None,
-                    "cwd": d.get("cwd"),
-                },
-                cache_tools_list=True,
-                name=d["name"],
-            )
-            server.path_root = path_root
+            if d.get("url"):
+                transport = d.get("transport") or (
+                    "sse" if str(d["url"]).rstrip("/").endswith("/sse") else "http"
+                )
+                cls = MCPServerSse if transport == "sse" else MCPServerStreamableHttp
+                server = cls(
+                    params={"url": d["url"], "headers": d.get("headers") or None},
+                    cache_tools_list=True,
+                    name=d["name"],
+                )
+            else:
+                server = PathTranslatingMCPServer(
+                    params={
+                        "command": d["command"],
+                        "args": d.get("args", []),
+                        "env": d.get("env") or None,
+                        "cwd": d.get("cwd"),
+                    },
+                    cache_tools_list=True,
+                    name=d["name"],
+                )
+                server.path_root = path_root
             await stack.enter_async_context(server)
             tools = await server.list_tools()
             names = [t.name for t in tools]
@@ -769,9 +889,8 @@ async def run_coding_task_stream(
         "source": "AGENTS.md",
         **agents_md_info,
     }
-    mcp_stack = AsyncExitStack()
     defs = mcp_definitions if mcp_definitions is not None else _load_mcp_definitions(settings)
-    mcp_servers = await connect_mcp_servers(defs, mcp_stack, path_root=root)
+    mcp_servers = await mcp_pool.get(tenant.id, defs, path_root=root)
     agent = build_agent(
         tenant, settings, model_override, root=root, mcp_servers=mcp_servers,
         agents_md=instructions_md,
@@ -808,9 +927,6 @@ async def run_coding_task_stream(
             "error": "TimeoutError",
             "detail": f"Task exceeded {timeout}s.",
         }
-    finally:
-        await mcp_stack.aclose()
-
 
 async def run_coding_task(
     tenant: Tenant,
@@ -824,30 +940,29 @@ async def run_coding_task(
     """Run one coding task for a tenant directly in the host workspace."""
     root = resolve_workspace_root(tenant, settings, workspace_override)
     prompt, instructions_md, _ = await _prepare_agents_md(root, prompt, session)
-    async with AsyncExitStack() as mcp_stack:
-        defs = (
-            mcp_definitions
-            if mcp_definitions is not None
-            else _load_mcp_definitions(settings)
-        )
-        mcp_servers = await connect_mcp_servers(defs, mcp_stack, path_root=root)
-        agent = build_agent(
-            tenant, settings, model_override, root=root, mcp_servers=mcp_servers,
-            agents_md=instructions_md,
-        )
-        run_config = RunConfig(workflow_name=f"tenant:{tenant.id}")
-        max_turns = tenant.max_turns or settings.max_turns
+    defs = (
+        mcp_definitions
+        if mcp_definitions is not None
+        else _load_mcp_definitions(settings)
+    )
+    mcp_servers = await mcp_pool.get(tenant.id, defs, path_root=root)
+    agent = build_agent(
+        tenant, settings, model_override, root=root, mcp_servers=mcp_servers,
+        agents_md=instructions_md,
+    )
+    run_config = RunConfig(workflow_name=f"tenant:{tenant.id}")
+    max_turns = tenant.max_turns or settings.max_turns
 
-        result = await asyncio.wait_for(
-            Runner.run(
-                agent,
-                prompt,
-                run_config=run_config,
-                max_turns=max_turns,
-                session=session,
-            ),
-            timeout=settings.task_timeout_seconds,
-        )
+    result = await asyncio.wait_for(
+        Runner.run(
+            agent,
+            prompt,
+            run_config=run_config,
+            max_turns=max_turns,
+            session=session,
+        ),
+        timeout=settings.task_timeout_seconds,
+    )
 
     model_name = model_override or tenant.model or settings.default_model
     return TaskResult(tenant_id=tenant.id, model=model_name, output=result.final_output)
