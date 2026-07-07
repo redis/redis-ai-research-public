@@ -65,9 +65,11 @@ See [quickstart.md](quickstart.md) for a guided first request and
 | PUT    | `/v1/workspace`     | `{path}` | Set the folder the agent works in for all subsequent tasks |
 | GET    | `/v1/workspace`     | — | Show the active workspace (null = tenant default) |
 | DELETE | `/v1/workspace`     | — | Reset to the tenant default |
-| PUT    | `/v1/mcp`           | `{path}` | Enable MCP servers from a path (validated by launching them; returns tools) |
-| GET    | `/v1/mcp`           | — | Launch the servers and list their live tools |
-| DELETE | `/v1/mcp`           | — | Disable per-tenant MCP servers |
+| PUT    | `/v1/mcp`           | `{path}` | REPLACE all MCP sources with this one (path or URL) |
+| POST   | `/v1/mcp/sources`   | `{path}` | ADD a source alongside existing ones |
+| DELETE | `/v1/mcp/sources`   | `?path=...` | Remove one source |
+| GET    | `/v1/mcp`           | — | Launch all sources, list live (deduped) tools |
+| DELETE | `/v1/mcp`           | — | Remove all per-tenant MCP sources |
 | POST   | `/v1/chat`          | `{prompt, model?, session_id?, workspace_path?}` | Conversational turn with folder-scoped auto-resume (needs Postgres) |
 | POST   | `/v1/chat/stream`   | same | Same, streamed as SSE (first event: `session`) |
 | POST   | `/v1/sessions`      | `{workspace_path?}` | Create a session bound to a folder (default: active workspace) |
@@ -232,40 +234,96 @@ model as text so it can correct itself instead of killing the run.
 
 ## MCP servers (`/v1/mcp`)
 
-Attach external MCP tools to the agent at runtime — no restart, no config file:
+Attach any number of MCP tool sources to the agent at runtime — one API call
+per server, no restart, no central config file. Scriptable: loop over your
+list of sources and POST each.
 
 ```bash
-# Point at an mcp.json, a single FastMCP server .py, or a folder of them
-curl -X PUT localhost:8000/v1/mcp \
-  -H 'Authorization: Bearer demo-key-acme' \
-  -H 'Content-Type: application/json' \
-  -d '{"path": "/path/to/your/mcp-servers"}'
-# -> lists every server it started and the tools each exposes
+AUTH='Authorization: Bearer demo-key-acme'
+CT='Content-Type: application/json'
 
-curl localhost:8000/v1/mcp -H '...'             # live tool list (launches servers)
-curl -X DELETE localhost:8000/v1/mcp -H '...'   # disable
+# ADD a source (repeat per server; each call is independent)
+curl -X POST localhost:8000/v1/mcp/sources -H "$AUTH" -H "$CT" \
+  -d '{"path": "/path/to/source"}'
+
+curl localhost:8000/v1/mcp -H "$AUTH"                             # live inventory
+curl -X DELETE 'localhost:8000/v1/mcp/sources?path=...' -H "$AUTH"  # remove one
+curl -X PUT localhost:8000/v1/mcp -H "$AUTH" -H "$CT" -d '{"path": "..."}'  # replace all
+curl -X DELETE localhost:8000/v1/mcp -H "$AUTH"                   # remove all
 ```
 
-How it works:
+### Recipes — the three kinds of source
 
-* **Discovery.** A directory uses its `mcp.json` if present, else every `*.py`
-  with an `mcp.run()` entrypoint becomes a server, launched via
-  `uv run --project <nearest-pyproject> python <file>` so it gets its own
-  dependencies.
-* **Validation on PUT.** Each server is actually launched once and its tools
-  listed; a broken server fails the PUT instead of silently failing later.
-* **Fresh per turn.** Servers are launched and connected for each task/chat
-  turn and shut down after. Edit a server file and the next turn runs the new
-  code — no refresh step. `GET /v1/mcp` shows the updated tool list.
+**1. Your own FastMCP server (a `.py` file, or a folder of them):**
+
+```bash
+curl -X POST localhost:8000/v1/mcp/sources -H "$AUTH" -H "$CT" \
+  -d '{"path": "/path/to/my-project/mcp-servers/my_server.py"}'
+```
+
+Launched via `uv run --project <nearest-pyproject> python <file>`, so it uses
+its own project's dependencies. A folder registers every `*.py` inside that
+has an `mcp.run()` entrypoint (or the folder's `mcp.json` if present).
+
+**2. A published npm/npx server** — write a small json file (OpenCode configs
+work verbatim, including `"mcp"` key, command-as-array, and `//` comments):
+
+```bash
+cat > ~/.mcp-extra/flight-search.json << 'EOF'
+{
+  "mcp": {
+    "flight-search": {
+      "type": "local",
+      "command": ["npx", "-y", "google-flights-mcp-server"]
+    }
+  }
+}
+EOF
+curl -X POST localhost:8000/v1/mcp/sources -H "$AUTH" -H "$CT" \
+  -d '{"path": "'$HOME'/.mcp-extra/flight-search.json"}'
+```
+
+`{"servers"}` and Claude-style `{"mcpServers"}` keys are accepted too, with
+`command`/`args`/`env`/`cwd` fields.
+
+**3. A remote MCP server — just the URL:**
+
+```bash
+curl -X POST localhost:8000/v1/mcp/sources -H "$AUTH" -H "$CT" \
+  -d '{"path": "https://mcp.example.com/sse"}'
+```
+
+Connects over streamable-http, or SSE when the URL ends in `/sse`. For auth
+headers or an explicit transport, use a json file with
+`{"url": ..., "transport": "sse"|"http", "headers": {...}}`.
+
+### How it works
+
+* **Sources compose.** Each tenant has a list of sources; every task/chat turn
+  gets the merged toolset from all of them.
+* **Validation on PUT/POST.** Each server is actually launched and its tools
+  listed in the response; a broken source fails the request instead of
+  silently failing later.
+* **Persistent server processes (MCPPool).** Servers launch once and stay
+  alive across tasks and chat turns. They relaunch only when the source list
+  or a config file changes, a server stops answering pings, or the service
+  restarts. This is required for stateful servers — e.g. BrowserMCP, whose
+  Chrome extension connects to one specific server process — and removes
+  per-turn startup latency. Consequence: after a relaunch (including uvicorn
+  `--reload` on code edits), stateful servers need their external side
+  reconnected (click Connect in the BrowserMCP extension again).
+* **Editing a server's code** applies on its next launch: change the source
+  list (or restart the service) to force it, and use `GET /v1/mcp` to confirm
+  the live tool list.
 * **Paths just work.** Everything runs on the host, so MCP tools and the
   agent's own tools see the same filesystem. Relative paths the model passes
   to MCP tools are absolutized against the workspace root at the call
   boundary (including legacy `repo/...` paths from old sessions).
 * **Duplicate tool names** across servers are a hard SDK error, so they're
-  deduped: the first server to expose a name keeps it; later duplicates are
+  deduped: the first source to expose a name keeps it; later duplicates are
   filtered (logged).
 * **Static fallback.** `MCP_CONFIG=./mcp.json` in `.env` applies to tenants
-  that haven't set a per-tenant path.
+  that haven't registered any sources.
 
 Note: the model sees MCP tools as a flat tool list — it has no notion of
 "which servers are attached." Use `GET /v1/mcp`, or ask it to *list its
