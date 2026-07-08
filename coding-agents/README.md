@@ -54,6 +54,10 @@ uv run uvicorn app.main:app --reload
 See [quickstart.md](quickstart.md) for a guided first request and
 [checks.md](checks.md) for verified end-to-end test results.
 
+**Interactive chat:** `uv run python chat.py` opens a terminal conversation
+(fresh session, streamed tool activity; `/end` to quit, `/listmcp` for the
+live MCP inventory). `API_URL`/`API_KEY` env overrides.
+
 ## Endpoints
 
 | Method | Path | Body | Purpose |
@@ -174,6 +178,14 @@ Each folder gets its own conversation thread; switching the active workspace
 (or passing a different `workspace_path`) switches threads. The response always
 carries `session_id` and `resumed`. The streamed variant (`/v1/chat/stream`)
 emits an initial `session` SSE event before the run events.
+
+**Clarifying questions (elicitation).** The agent is instructed to ask rather
+than guess when a request is ambiguous — it ends its turn with 1-2 pointed
+questions (listing the options it found), and your next `/v1/chat` message is
+the answer; auto-resume routes it into the same conversation. When it proceeds
+on a reasonable default instead, it states the assumption. Note this works at
+turn boundaries, not mid-run, and `/v1/tasks` (stateless) can't complete the
+loop — send ambiguous work to `/v1/chat`.
 
 Because execution is direct, file changes persist across turns: what the agent
 edits in turn 1 is on disk in turn 2 (and in your editor).
@@ -325,10 +337,18 @@ headers or an explicit transport, use a json file with
 * **Static fallback.** `MCP_CONFIG=./mcp.json` in `.env` applies to tenants
   that haven't registered any sources.
 
-Note: the model sees MCP tools as a flat tool list — it has no notion of
-"which servers are attached." Use `GET /v1/mcp`, or ask it to *list its
-tools*; asking it "what servers do you see" will send it grepping the
-workspace instead.
+### Known limitations
+
+* **MCP-initiated elicitation is not supported.** If an MCP server calls the
+  MCP `elicit` capability mid-tool-call (e.g. FastMCP's `ctx.elicit()`) to ask
+  the user a question, no callback is wired to surface it — the tool call
+  fails instead of reaching the user. Agent-initiated clarification works fine
+  (see Conversations below); this only affects servers that themselves prompt
+  the user.
+* The model sees MCP tools as a flat tool list — it has no notion of "which
+  servers are attached." Use `GET /v1/mcp`, or ask it to *list its tools*;
+  asking it "what servers do you see" will send it grepping the workspace
+  instead.
 
 ## Where to watch what the agent is doing
 

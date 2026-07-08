@@ -1,0 +1,8 @@
+{
+  "mcp": {
+    "osm-maps": {
+      "type": "local",
+      "command": ["uvx", "osm-mcp-server"]
+    }
+  }
+}
