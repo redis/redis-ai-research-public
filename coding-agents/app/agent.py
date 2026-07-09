@@ -49,15 +49,16 @@ ORCHESTRATOR_INSTRUCTIONS_TEMPLATE = (
     "the smallest change that satisfies the request, prefer the project's own "
     "test/build commands, and state the exact command you ran. Finish with a "
     "short summary of what you changed and how you verified it.\n\n"
-    "You are not limited to coding tasks. For general questions, use "
-    "`web_search` to FIND pages (it returns titles, URLs, and snippets), then "
-    "`webfetch` to READ the promising ones. Never webfetch search-engine "
-    "result pages (Google/Bing) — they block plain fetches; that's what "
-    "web_search is for. Prefer static pages and open JSON APIs (e.g. "
-    "Wikipedia's REST API, government/open-data endpoints) since heavy "
-    "JavaScript sites return little useful text. Try before declaring "
-    "something impossible: if one source fails, try another phrasing or site, "
-    "and cite which URL your answer came from.\n\n"
+    "You are not limited to coding tasks. For general questions needing the "
+    "web, PREFER the Exa tools when available: `web_search_exa` to FIND pages "
+    "and `web_fetch_exa` to READ them (it extracts clean text even from "
+    "JavaScript-heavy sites). Fall back to the built-in `webfetch` when Exa "
+    "tools are unavailable or a specific call fails, and use `webfetch` "
+    "directly for open JSON APIs (e.g. Wikipedia's REST API, open-data "
+    "endpoints). Never fetch search-engine result pages (Google/Bing) — they "
+    "block plain fetches. Try before declaring something impossible: if one "
+    "source fails, try another phrasing or site, and cite which URL your "
+    "answer came from.\n\n"
     "If the request is ambiguous, underspecified, or could be interpreted in "
     "meaningfully different ways (which file? destructive or not? what output "
     "format?), ASK a concise clarifying question and end your turn instead of "
@@ -629,71 +630,16 @@ _BROWSER_UA = (
 )
 
 
-def _make_web_search_tool():
-    """Web search via DuckDuckGo's HTML endpoint — free, no API key."""
-    import html as html_mod
-    import re
-    from urllib.parse import parse_qs, quote_plus, urlparse
-
-    @function_tool
-    async def web_search(query: str, max_results: int = 8) -> str:
-        """Search the web and return result titles, URLs, and snippets.
-
-        Use this to FIND pages when you don't know the URL; then use webfetch
-        to read the promising ones. Returns up to max_results entries.
-        """
-        url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
-        try:
-            async with httpx.AsyncClient(
-                timeout=WEBFETCH_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": _BROWSER_UA},
-            ) as client:
-                resp = await client.get(url)
-            if resp.status_code != 200:
-                return f"ERROR: search returned HTTP {resp.status_code}"
-            page = resp.text
-            links = re.findall(
-                r'<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>',
-                page, re.DOTALL,
-            )
-            snippets = re.findall(
-                r'<a[^>]*class="result__snippet"[^>]*>(.*?)</a>', page, re.DOTALL
-            )
-            out = []
-            for i, (href, title_html) in enumerate(links[:max_results]):
-                # DDG wraps targets in a redirect: /l/?uddg=<encoded-url>
-                target = href
-                parsed = urlparse(href)
-                qs = parse_qs(parsed.query)
-                if "uddg" in qs:
-                    target = qs["uddg"][0]
-                title = html_mod.unescape(re.sub(r"<[^>]+>", "", title_html)).strip()
-                snippet = ""
-                if i < len(snippets):
-                    snippet = html_mod.unescape(
-                        re.sub(r"<[^>]+>", "", snippets[i])
-                    ).strip()
-                out.append(f"{i + 1}. {title}\n   {target}\n   {snippet}")
-            if not out:
-                return "No results found. Try a different query."
-            return "\n\n".join(out)
-        except httpx.HTTPError as exc:
-            return f"ERROR: {type(exc).__name__}: {exc}"
-
-    return web_search
-
-
 def _make_webfetch_tool():
     """Fetch a URL. Runs in this process, like everything else now."""
     @function_tool
     async def webfetch(url: str) -> str:
         """Fetch the body of a URL (HTTP/HTTPS only) and return it as text.
 
-        Use this to READ a page whose URL you know (from web_search or the
-        user). Prefer static pages and API endpoints (Wikipedia REST,
-        open-data APIs) over JavaScript-heavy sites, which return little
-        useful text. Response is truncated to ~200KB.
+        FALLBACK reader: prefer web_fetch_exa when available. Use this when
+        Exa tools are missing or fail, and for direct API endpoints
+        (Wikipedia REST, open-data JSON APIs). JavaScript-heavy sites return
+        little useful text here. Response is truncated to ~200KB.
         """
         if not url.startswith(("http://", "https://")):
             return f"ERROR: webfetch only supports http(s) URLs (got: {url!r})"
@@ -863,7 +809,6 @@ def build_agent(
         tools=[
             *_make_workspace_tools(root),
             _make_invoke_subagents_tool(tenant, settings, model_override, root),
-            _make_web_search_tool(),
             _make_webfetch_tool(),
             todo_write,
             todo_read,
