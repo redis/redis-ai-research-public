@@ -1,0 +1,64 @@
+{
+  "cohorts": [
+    {
+      "cohort_name": "verify-cohort",
+      "session_ids": [
+        "ses_10e4657e4ffewTTxUXtkVLjDWH",
+        "ses_10e119296ffevugnygoML8x4f3",
+        "ses_10dbdcf73ffe55EWW54UN4PrAJ",
+        "ses_10dac0028ffeVBZDYmb9xMp45q"
+      ]
+    },
+    {
+      "cohort_name": "gpt-5.3-codex-slow-shards-sample",
+      "session_ids": [
+        "ses_10d9333d1ffedJYfQMSuXNOp0O",
+        "ses_10d9310a5ffe3Gfkes3xwqOCdi",
+        "ses_10d92f033ffeLzIdvjG9zag6yT",
+        "ses_10d92caf7ffeaRljXqWvDSK9RB",
+        "ses_10d92a6b4ffeUEA1WwkcI6kmd1"
+      ]
+    },
+    {
+      "cohort_name": "gpt-5.3-codex-slow-shards-TbFrete21",
+      "session_ids": [
+        "ses_10d8cbbd7ffexv3n8XX4gPvWer",
+        "ses_10d8c8f26ffeegs7s3ipIjkNkA",
+        "ses_10d8c6a0affec50T1x4HHXA6jr",
+        "ses_10d8c428fffe9VCzF2ygng6RA6",
+        "ses_10d8c24bbffeIOq6YyB31FglIC"
+      ]
+    },
+    {
+      "cohort_name": "cohort-4",
+      "session_ids": [
+        "ses_10d871a3affey2hIl4cXaisXCZ"
+      ]
+    },
+    {
+      "cohort_name": "cohort-5",
+      "session_ids": [
+        "ses_10a2d2eecffeNu3i95oZcR393N",
+        "ses_10a2cf079ffee0Y176NVhMoh6B",
+        "ses_10a2cbb1cffeyMPOR10jGFdGHz",
+        "ses_10a2c8ac1ffe2CxG0Co6CCguwy",
+        "ses_10a2c25d3ffeczaK6z5s3i6KGT"
+      ]
+    },
+    {
+      "cohort_name": "cohort-6",
+      "session_ids": [
+        "ses_109ba0c4cffeKSJexyndKG9t8T",
+        "ses_109b9d331ffe4rj0gejUkGBNm3",
+        "ses_109b96030ffeqtpRWHYaGfW0zu",
+        "ses_109b9245dffeBjnSedRPphll1H",
+        "ses_109b8f453ffe2O33g4KUsbZt3U",
+        "ses_109b8bb87ffeBGQlgPOYfiiWXl",
+        "ses_109b88259ffeKbWtru3Llb7dg8",
+        "ses_109b84243ffe0gmI49qm6GtkRb",
+        "ses_109b811daffeqf6pzI1qWDmK77",
+        "ses_109b7dab0ffeHAt99Js0X8zYCn"
+      ]
+    }
+  ]
+}
