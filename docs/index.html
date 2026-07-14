@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redis AI Research</title>
+    <meta name="description" content="Public-facing projects, experiments, and reference implementations from the Redis AI Research team." />
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121933;
+        --text: #e8ecf3;
+        --muted: #aab4c3;
+        --accent: #ff4438;
+        --accent-2: #5cc8ff;
+        --border: #26304f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(180deg, #0b1020 0%, #0f1730 100%);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+      }
+      h1, h2, h3 { line-height: 1.2; margin: 0 0 12px; }
+      h1 { font-size: 2.5rem; }
+      h2 { font-size: 1.5rem; margin-top: 36px; }
+      p { margin: 0 0 16px; color: var(--muted); }
+      a { color: var(--accent-2); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .hero {
+        background: rgba(18, 25, 51, 0.8);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 32px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      }
+      .badge {
+        display: inline-block;
+        font-size: 0.85rem;
+        color: white;
+        background: var(--accent);
+        padding: 6px 10px;
+        border-radius: 999px;
+        margin-bottom: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+      }
+      .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+      .repo-link {
+        display: inline-block;
+        margin-top: 10px;
+        font-weight: 600;
+      }
+      code {
+        background: rgba(255,255,255,0.08);
+        padding: 2px 6px;
+        border-radius: 6px;
+        color: var(--text);
+      }
+      ul { color: var(--muted); }
+      footer {
+        margin-top: 42px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <div class="badge">Redis AI Research</div>
+        <h1>Public projects and experiments built on Redis</h1>
+        <p>
+          This monorepo collects open-source work from the Redis AI Research team exploring
+          semantic caching, vector search, retrieval-augmented generation, agentic systems,
+          and evaluation workflows.
+        </p>
+        <p>
+          Repository: <a href="https://github.com/redis/redis-ai-research-public">redis/redis-ai-research-public</a>
+        </p>
+      </section>
+
+      <section>
+        <h2>Current projects</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>coding-agents</h3>
+            <p>
+              A multi-tenant FastAPI coding-agent service built on the OpenAI Agents SDK sandbox harness.
+            </p>
+            <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/coding-agents">Open project →</a>
+          </article>
+
+          <article class="card">
+            <h3>learning-agents</h3>
+            <p>
+              A multi-agent system that turns natural-language questions into executable pandas code with Redis-backed cache and guidance memory.
+            </p>
+            <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/learning-agents">Open project →</a>
+          </article>
+
+          <article class="card">
+            <h3>memorydb-semantic-search</h3>
+            <p>
+              Semantic search over LongMemEval chat sessions on AWS MemoryDB, including benchmarks for multiple backend approaches.
+            </p>
+            <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/memorydb-semantic-search">Open project →</a>
+          </article>
+
+          <article class="card">
+            <h3>opencode-spec-optimization</h3>
+            <p>
+              An evaluation-driven workflow that iteratively rewrites <code>AGENTS.md</code> until OpenCode runs satisfy target objectives.
+            </p>
+            <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/opencode-spec-optimization">Open project →</a>
+          </article>
+
+          <article class="card">
+            <h3>agentic-ai-summit</h3>
+            <p>
+              Talk slides and supporting artifacts for the Agentic AI Summit, including Marp source, generated HTML, PDF output, and theme assets.
+            </p>
+            <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/agentic-ai-summit/talk-slides">Open project →</a>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>What this repo covers</h2>
+        <ul>
+          <li>Semantic and vector search</li>
+          <li>Caching for LLM applications</li>
+          <li>Agentic systems and memory architectures</li>
+          <li>RAG pipelines and evaluations</li>
+          <li>Benchmarks for AI workloads on Redis</li>
+        </ul>
+      </section>
+
+      <footer>
+        <p>
+          Start with the monorepo README or jump directly into a project folder.
+          For questions or contributions, open an issue in the GitHub repository.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
