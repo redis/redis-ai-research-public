@@ -1,0 +1,44 @@
+[project]
+name = "opencode-agent-tooling"
+version = "0.1.0"
+description = "Utilities for exporting and analyzing OpenCode session logs in Opik."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "celery>=5.5.3",
+    "matplotlib>=3.10.3",
+    "opik>=1.10.40",
+    "pandas>=2.3.2",
+    "redis>=6.2.0",
+    "rich>=14.1.0",
+    "seaborn>=0.13.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src", "service"]
+
+[project.scripts]
+cohort-stream-consumer = "service.stream_consumer:main"
+enqueue-cohort = "service.enqueue:main"
+cohort-http-api = "service.http_api:main"
+stream-setup = "service.stream_setup:main"
+compute-agent-metrics = "src.compute_agent_metrics:main"
+construct-session-log = "src.construct_session_log:main"
+generate-msg-graph = "src.generate_msg_graph:main"
+session-cohort = "src.session_cohort:main"
+
+[dependency-groups]
+dev = [
+    "black>=26.3.1",
+    "isort>=8.0.1",
+    "pylint>=4.0.5",
+]
+
+[tool.pylint.master]
+ignore-paths = [
+    ".venv",
+]
