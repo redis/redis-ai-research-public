@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spec-Driven Agents for RQE: Specs, Tooling, and Trajectory-Based Evaluation</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2129; --border: #2d333b;
+    --text: #e6edf3; --muted: #8b949e; --accent: #ff4438; --accent2: #58a6ff;
+    --good: #3fb950; --warn: #d29922;
+    --mono: "SF Mono", "Fira Code", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; overflow: hidden; }
+  .slide { display: none; position: absolute; inset: 0; padding: 5vh 7vw;
+    flex-direction: column; justify-content: center; }
+  .slide.active { display: flex; }
+  h1 { font-size: 3.2rem; line-height: 1.15; font-weight: 800; }
+  h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 2.2rem; }
+  h2 .kicker { display: block; font-size: 0.85rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.6rem; font-weight: 600; }
+  p, li { font-size: 1.25rem; line-height: 1.55; color: var(--text); }
+  .muted { color: var(--muted); }
+  .accent { color: var(--accent); }
+  .blue { color: var(--accent2); }
+  .good { color: var(--good); }
+  ul.spaced li { margin-bottom: 1.1rem; }
+  ul { padding-left: 1.4rem; }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--panel2);
+    padding: 0.12em 0.4em; border-radius: 5px; border: 1px solid var(--border); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.6rem; align-items: stretch; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.5rem 1.7rem; }
+  .card h3 { font-size: 1.15rem; margin-bottom: 0.7rem; color: var(--accent2); }
+  .card p, .card li { font-size: 1.05rem; }
+  .big-stat { font-size: 3.4rem; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 1rem; color: var(--muted); margin-top: 0.5rem; }
+  /* bar chart */
+  .bars { display: flex; flex-direction: column; gap: 1.05rem; margin-top: 1rem; }
+  .bar-row { display: grid; grid-template-columns: 15rem 1fr 5.5rem; gap: 1rem; align-items: center; }
+  .bar-row .label { font-size: 1.02rem; text-align: right; color: var(--text); }
+  .bar-track { background: var(--panel2); border-radius: 6px; height: 1.5rem; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; }
+  .bar-row .delta { font-family: var(--mono); font-size: 1rem; font-weight: 700; }
+  .legend { display: flex; gap: 2rem; margin-bottom: 1.2rem; font-size: 1rem; color: var(--muted); }
+  .legend .sw { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px;
+    vertical-align: -0.15rem; margin-right: 0.5rem; }
+  .footer-note { margin-top: 2rem; font-size: 1rem; color: var(--muted); }
+  .pill { display: inline-block; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 0.3rem 1rem; font-size: 0.95rem; color: var(--muted);
+    margin-right: 0.6rem; margin-bottom: 0.6rem; }
+  .num { font-family: var(--mono); }
+  table { border-collapse: collapse; width: 100%; margin-top: 0.5rem; }
+  th, td { text-align: left; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border);
+    font-size: 1.08rem; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.9rem; text-transform: uppercase;
+    letter-spacing: 0.08em; }
+  td.num, th.num { text-align: right; font-family: var(--mono); }
+  /* chrome */
+  #progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent);
+    transition: width 0.25s ease; z-index: 10; }
+  #counter { position: fixed; bottom: 1.2rem; right: 1.6rem; color: var(--muted);
+    font-family: var(--mono); font-size: 0.85rem; z-index: 10; }
+  #hint { position: fixed; bottom: 1.2rem; left: 1.6rem; color: var(--muted);
+    font-size: 0.8rem; z-index: 10; opacity: 0.7; }
+  .flow { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; margin: 1.4rem 0; }
+  .flow .step { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.8rem 1.2rem; font-size: 1.02rem; }
+  .flow .arrow { color: var(--accent); font-size: 1.4rem; }
+  .callout { border-left: 4px solid var(--accent); background: var(--panel);
+    padding: 1.1rem 1.5rem; border-radius: 0 10px 10px 0; margin-top: 1.8rem; }
+  .callout p { font-size: 1.15rem; }
+  .takeaway-num { font-size: 2.6rem; font-weight: 800; color: var(--accent); line-height: 1; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Title -->
+<section class="slide active">
+  <h1><span class="accent">Spec-Driven Agents</span> for RQE:<br>Specs, Tooling, and<br>Trajectory-Based Evaluation</h1>
+  <p class="muted" style="margin-top:2.2rem;font-size:1.2rem">Evaluation-led agent design on the Redis Query Engine</p>
+  <p style="margin-top:3rem;font-size:1.1rem">Srijith Rajamohan, Ph.D. · Yash Mandilwar · Chris Coleman · Itamar Haber · Adriano Amaral<br><span class="muted" style="font-size:0.95rem">Redis</span></p>
+</section>
+
+<!-- 2 · The bottleneck -->
+<section class="slide">
+  <h2><span class="kicker">The Problem</span>Reliability is the bottleneck between demo and production</h2>
+  <p style="margin-bottom:1.6rem">Production means, every time:</p>
+  <ul class="spaced">
+    <li>The <strong>right tools</strong>, in the <strong>correct order</strong></li>
+    <li><strong>All the time</strong></li>
+  </ul>
+  <div class="callout"><p>Answers must be <strong>correct, complete, and useful</strong> — ideally also <strong>efficient</strong> — and all of it <em>measurable</em>.</p></div>
+</section>
+
+<!-- 3 · Case study -->
+<section class="slide">
+  <h2><span class="kicker">Case Study</span>Troubleshooting the Redis Query Engine</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1.4rem">An agent that diagnoses RQE (RediSearch) issues: slow queries, indexing failures, memory pressure, stale results, vector search problems.</p>
+      <ul class="spaced">
+        <li>Interprets raw diagnostics: <code>FT.PROFILE</code>, <code>FT.INFO</code>, <code>SLOWLOG</code>, shard metrics</li>
+        <li>Staged workflow: Clarification → Diagnosis → Confirmation → Solution</li>
+        <li>Must ground every conclusion in collected evidence</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Why this domain is hard for agents</h3>
+      <ul class="spaced" style="padding-left:1.2rem">
+        <li>Unlike SQL, parametric knowledge is often incorrect</li>
+        <li>Very context dependent — needs to know what information is missing from a question</li>
+        <li>Analysis may not catch all issues (completeness)</li>
+        <li>Answers can be non-useful</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · Failure modes -->
+<section class="slide">
+  <h2><span class="kicker">Observed Failure Modes</span>How agents actually go wrong</h2>
+  <div class="cols" style="gap:1.6rem;grid-template-columns:2fr 1fr">
+    <div>
+      <h3 style="color:var(--accent);font-size:1.1rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.9rem">Correctness</h3>
+      <div class="cols" style="gap:1.2rem">
+        <div class="card"><h3>Tool &amp; file-read omission</h3><p>Skips a required tool call, misses a file entirely, or reads it partially — the answer looks complete but is missing evidence.</p></div>
+        <div class="card"><h3>Hallucination &amp; misuse of information</h3><p>Guesses paths or arguments that don't exist, forgets evidence already collected, or reasons illogically from what it has.</p></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="color:var(--accent);font-size:1.1rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.9rem">Efficiency</h3>
+      <div class="card"><h3>Inefficient paths</h3><p>Exploratory flailing: repeated reads of the same document, backtracking, dead-end searches.</p></div>
+    </div>
+  </div>
+  <div class="callout"><p>None of these show up in an end-to-end "did it answer?" eval. They only show up in the <strong>trajectory</strong>.</p></div>
+</section>
+
+<!-- 5 · Spec-driven design -->
+<section class="slide">
+  <h2><span class="kicker">Approach 1/2</span>Spec-driven design &amp; tool granularity</h2>
+  <p style="margin-bottom:1.6rem"><strong>Hierarchical specs</strong> + deliberately shaped tools — not a monolithic prompt:</p>
+  <div class="cols3">
+    <div class="card"><h3>Specs encode context &amp; tool use</h3><p>What context matters · which tools, how, in what order · required inputs declared.</p></div>
+    <div class="card"><h3>Right-sized tools</h3><p>Transforms belong in tools, not the context window: <code>analyse_ft_profile</code> → compact summary + outliers.</p></div>
+    <div class="card"><h3>Setup vs. discretionary tools</h3><p><strong>Setup</strong>: always run — <code>ft_info</code> before any query. <strong>Discretionary</strong>: invoked by model judgment as context requires.</p></div>
+  </div>
+</section>
+
+<!-- 6a · Baseline architecture -->
+<section class="slide">
+  <h2><span class="kicker">Architecture — Baseline</span>A standard spec-driven agent</h2>
+  <svg viewBox="0 0 1000 400" style="width:100%;max-height:60vh" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ar0" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="#ff4438" stroke-width="1.5"/></marker></defs>
+    <!-- user -->
+    <rect x="20" y="160" width="150" height="70" rx="10" fill="#161b22" stroke="#2d333b"/>
+    <text x="95" y="190" text-anchor="middle" fill="#e6edf3" font-size="17" font-weight="600">User</text>
+    <text x="95" y="212" text-anchor="middle" fill="#8b949e" font-size="12">symptom description</text>
+    <!-- agent -->
+    <rect x="240" y="130" width="190" height="130" rx="10" fill="#161b22" stroke="#ff4438" stroke-width="1.5"/>
+    <text x="335" y="165" text-anchor="middle" fill="#e6edf3" font-size="17" font-weight="600">Agent</text>
+    <text x="335" y="190" text-anchor="middle" fill="#8b949e" font-size="12">spec: role, workflow,</text>
+    <text x="335" y="208" text-anchor="middle" fill="#8b949e" font-size="12">hard rules</text>
+    <!-- subagents -->
+    <rect x="500" y="130" width="180" height="130" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="590" y="165" text-anchor="middle" fill="#d29922" font-size="16" font-weight="600">Subagents</text>
+    <text x="590" y="190" text-anchor="middle" fill="#8b949e" font-size="12">delegated search,</text>
+    <text x="590" y="208" text-anchor="middle" fill="#8b949e" font-size="12">analysis subtasks</text>
+    <!-- raw docs -->
+    <rect x="760" y="40" width="220" height="140" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="870" y="70" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="600">Raw doc files</text>
+    <text x="870" y="96" text-anchor="middle" fill="#e6edf3" font-size="13">RQE-Troubleshooting-Guide.md</text>
+    <text x="870" y="118" text-anchor="middle" fill="#8b949e" font-size="12">best-practices/*.md</text>
+    <text x="870" y="140" text-anchor="middle" fill="#8b949e" font-size="12">found via glob / grep / read</text>
+    <!-- mcp -->
+    <rect x="760" y="220" width="220" height="140" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="870" y="250" text-anchor="middle" fill="#3fb950" font-size="16" font-weight="600">MCP Tools</text>
+    <text x="870" y="276" text-anchor="middle" fill="#e6edf3" font-size="13" font-family="monospace">analyse_ft_profile</text>
+    <text x="870" y="298" text-anchor="middle" fill="#8b949e" font-size="12" font-family="monospace">ft_info · slowlog_get</text>
+    <text x="870" y="318" text-anchor="middle" fill="#8b949e" font-size="12" font-family="monospace">redis_execute</text>
+    <!-- arrows -->
+    <line x1="170" y1="195" x2="232" y2="195" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <line x1="430" y1="195" x2="492" y2="195" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <line x1="680" y1="160" x2="752" y2="115" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <line x1="680" y1="230" x2="752" y2="285" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar0)"/>
+    <text x="716" y="125" text-anchor="middle" fill="#8b949e" font-size="12">search + read</text>
+    <text x="716" y="280" text-anchor="middle" fill="#8b949e" font-size="12">invoke</text>
+  </svg>
+  <p class="footer-note">Knowledge is unstructured — the agent must <em>find</em> what it needs. This is the baseline we measure against.</p>
+</section>
+
+<!-- 6b · Playbook architecture -->
+<section class="slide">
+  <h2><span class="kicker">Architecture — With Playbook</span>Structured knowledge replaces raw docs</h2>
+  <svg viewBox="0 0 1250 440" style="width:100%;max-height:60vh" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="#ff4438" stroke-width="1.5"/></marker></defs>
+    <!-- user -->
+    <rect x="20" y="185" width="150" height="70" rx="10" fill="#161b22" stroke="#2d333b"/>
+    <text x="95" y="215" text-anchor="middle" fill="#e6edf3" font-size="17" font-weight="600">User</text>
+    <text x="95" y="237" text-anchor="middle" fill="#8b949e" font-size="12">symptom description</text>
+    <!-- agent -->
+    <rect x="240" y="155" width="190" height="130" rx="10" fill="#161b22" stroke="#ff4438" stroke-width="1.5"/>
+    <text x="335" y="190" text-anchor="middle" fill="#e6edf3" font-size="17" font-weight="600">Agent</text>
+    <text x="335" y="215" text-anchor="middle" fill="#8b949e" font-size="12">spec: role, workflow,</text>
+    <text x="335" y="233" text-anchor="middle" fill="#8b949e" font-size="12">hard rules</text>
+    <!-- subagents -->
+    <rect x="500" y="155" width="180" height="130" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="590" y="190" text-anchor="middle" fill="#d29922" font-size="16" font-weight="600">Subagents</text>
+    <text x="590" y="215" text-anchor="middle" fill="#8b949e" font-size="12">delegated search,</text>
+    <text x="590" y="233" text-anchor="middle" fill="#8b949e" font-size="12">analysis subtasks</text>
+    <!-- playbook -->
+    <rect x="760" y="15" width="220" height="130" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="870" y="43" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="600">Playbook + organized docs</text>
+    <text x="870" y="68" text-anchor="middle" fill="#e6edf3" font-size="13">symptoms-router.md</text>
+    <text x="870" y="90" text-anchor="middle" fill="#8b949e" font-size="12">slow-queries/ SQ-01…05</text>
+    <text x="870" y="108" text-anchor="middle" fill="#8b949e" font-size="12">indexing-failures/ IF-01…06</text>
+    <text x="870" y="126" text-anchor="middle" fill="#8b949e" font-size="12">memory · vector · connection</text>
+    <!-- data processing tools -->
+    <rect x="760" y="165" width="220" height="115" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="870" y="193" text-anchor="middle" fill="#3fb950" font-size="16" font-weight="600">Data processing tools</text>
+    <text x="870" y="218" text-anchor="middle" fill="#e6edf3" font-size="13" font-family="monospace">analyse_ft_profile</text>
+    <text x="870" y="240" text-anchor="middle" fill="#8b949e" font-size="12">parse · summarize · outliers</text>
+    <text x="870" y="258" text-anchor="middle" fill="#8b949e" font-size="12">(MCP)</text>
+    <!-- data connector tools -->
+    <rect x="760" y="300" width="220" height="115" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="870" y="328" text-anchor="middle" fill="#3fb950" font-size="16" font-weight="600">Data connector tools</text>
+    <text x="870" y="353" text-anchor="middle" fill="#8b949e" font-size="12" font-family="monospace">ft_info · slowlog_get</text>
+    <text x="870" y="373" text-anchor="middle" fill="#8b949e" font-size="12" font-family="monospace">redis_execute · fetch_redis_metrics</text>
+    <text x="870" y="393" text-anchor="middle" fill="#8b949e" font-size="12">(MCP → live Redis)</text>
+    <!-- second classification axis: when tools run -->
+    <text x="1125" y="135" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="600">Same tools, second axis:</text>
+    <text x="1125" y="153" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="600">when they run</text>
+    <rect x="1015" y="165" width="220" height="115" rx="10" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <text x="1125" y="200" text-anchor="middle" fill="#3fb950" font-size="15" font-weight="600">Setup tools</text>
+    <text x="1125" y="224" text-anchor="middle" fill="#8b949e" font-size="12">always run first</text>
+    <text x="1125" y="246" text-anchor="middle" fill="#8b949e" font-size="12" font-family="monospace">ft_info · get_ftprofile_stats</text>
+    <rect x="1015" y="300" width="220" height="115" rx="10" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <text x="1125" y="335" text-anchor="middle" fill="#3fb950" font-size="15" font-weight="600">Discretionary tools</text>
+    <text x="1125" y="359" text-anchor="middle" fill="#8b949e" font-size="12">invoked by model judgment</text>
+    <text x="1125" y="381" text-anchor="middle" fill="#8b949e" font-size="12" font-family="monospace">drilldowns · redis_execute · …</text>
+    <!-- arrows -->
+    <line x1="170" y1="220" x2="232" y2="220" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar)"/>
+    <line x1="430" y1="220" x2="492" y2="220" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar)"/>
+    <line x1="680" y1="180" x2="752" y2="90" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar)"/>
+    <line x1="680" y1="220" x2="752" y2="222" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar)"/>
+    <line x1="680" y1="260" x2="752" y2="350" stroke="#ff4438" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="712" y="120" text-anchor="middle" fill="#8b949e" font-size="12">route + read</text>
+    <text x="716" y="212" text-anchor="middle" fill="#8b949e" font-size="12">invoke</text>
+  </svg>
+  <p class="footer-note">Two orthogonal tool abstractions: <strong>what they do</strong> — processing vs. connector — and <strong>when they run</strong> — setup (always, e.g. <code>ft_info</code>) vs. discretionary (model judgment).</p>
+</section>
+
+<!-- 8+9 · KB to playbook + router example -->
+<section class="slide">
+  <h2><span class="kicker">Approach 2/2</span>Knowledge base → Agent Diagnostic Playbook</h2>
+  <div class="flow" style="margin-top:0">
+    <div class="step">Troubleshooting guide<br><span class="muted">prose</span></div>
+    <div class="arrow">→</div>
+    <div class="step">Symptom extraction<br><span class="muted">user language</span></div>
+    <div class="arrow">→</div>
+    <div class="step">Router<br><span class="muted">symptom → handbook</span></div>
+    <div class="arrow">→</div>
+    <div class="step">Handbooks<br><span class="muted">where to look · what to interpret · how to act</span></div>
+  </div>
+  <div class="cols" style="margin-top:1.6rem">
+    <div>
+      <pre style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:1.3rem;font-family:var(--mono);font-size:0.92rem;line-height:1.6;color:var(--text);overflow:hidden">- symptom: "Any query with *word*
+    or big OR chains gets
+    dramatically slower."
+  likely_problem_type:
+    "Wildcards and broad
+     text expansion"
+  route_to_handbook:
+    - slow-queries/SQ-02-expensive-
+      wildcards-and-broad-text.md</pre>
+    </div>
+    <div>
+      <ul class="spaced">
+        <li>Symptoms phrased <strong>the way users complain</strong></li>
+        <li>Routing is a lookup, not a search</li>
+        <li>Handbooks are self-contained: diagnostics, patterns, fixes</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · Trajectory eval -->
+<section class="slide">
+  <h2><span class="kicker">Measuring It</span>Trajectory-based evaluation</h2>
+  <p style="margin-bottom:1.4rem">We instrument every session and score the <strong>full trajectory</strong>, not just the final answer:</p>
+  <div class="cols" style="gap:1.4rem">
+    <div class="card">
+      <h3>Correctness</h3>
+      <p><strong>The answer is correct.</strong></p>
+      <p class="muted" style="font-size:0.92rem;margin-top:0.5rem">grounding · specificity · hallucinated paths · ordering (LCS similarity)</p>
+    </div>
+    <div class="card">
+      <h3>Completeness</h3>
+      <p><strong>The answer has identified all the issues.</strong></p>
+      <p class="muted" style="font-size:0.92rem;margin-top:0.5rem">tool/doc coverage · % sessions missing a required read · first-pass success</p>
+    </div>
+    <div class="card">
+      <h3>Efficiency</h3>
+      <p><strong>It has taken the most optimal path to the answer.</strong></p>
+      <p class="muted" style="font-size:0.92rem;margin-top:0.5rem">redundant/repeated reads · backtracking · dead-ends · tokens · duration · tool errors</p>
+    </div>
+    <div class="card">
+      <h3>Usefulness</h3>
+      <p><strong>The fix preserves the user's semantic intent.</strong></p>
+      <p class="muted" style="font-size:0.92rem;margin-top:0.5rem">e.g. "use fewer search terms" speeds the query but breaks what the user meant</p>
+    </div>
+  </div>
+  <div class="callout"><p>Coverage makes <strong>omission</strong> visible; usefulness is the hardest to automate — it requires judging recommendations against intent, not just evidence.</p></div>
+</section>
+
+<!-- MCP experiment 1 -->
+<section class="slide">
+  <h2><span class="kicker">Experiment 1 — Tool Granularity</span>Which MCP setup? Four designs, head-to-head</h2>
+  <p style="margin-bottom:1rem">4 FT.PROFILE datasets × 5 sessions per setup (<span class="num">20 runs each</span>):</p>
+  <table>
+    <tr><th>Setup</th><th class="num">Avg duration</th><th class="num">Std dev</th><th class="num">Tool calls</th><th class="num">Quality</th></tr>
+    <tr><td>Baseline</td><td class="num">50.8s</td><td class="num">26.8s</td><td class="num">217*</td><td class="num">mixed</td></tr>
+    <tr><td><strong class="good">With-setup-tools</strong></td><td class="num">31.9s</td><td class="num good">5.6s</td><td class="num good">224</td><td class="num good">20/20</td></tr>
+    <tr><td>Minimal</td><td class="num good">31.6s</td><td class="num">7.0s</td><td class="num">251</td><td class="num good">20/20</td></tr>
+    <tr><td>Full</td><td class="num">40.6s</td><td class="num">13.3s</td><td class="num">390</td><td class="num">19/20</td></tr>
+  </table>
+  <div class="callout" style="margin-top:1.6rem"><p><strong>With-setup-tools wins 3/4 datasets</strong>: layered drilldowns — broad stats → diagnosis → iterator tree → details. Full is over-instrumented; the Baseline* leans on <span class="num">49</span> bash + <span class="num">5</span> grep fallbacks.</p></div>
+</section>
+
+<!-- MCP experiment 2: trajectories -->
+<section class="slide">
+  <h2><span class="kicker">Experiment 1 — Tool Granularity</span>Granularity shapes trajectory consistency</h2>
+  <div class="cols" style="grid-template-columns:2fr 3fr;gap:2rem;align-items:center">
+    <div>
+      <table>
+        <tr><th></th><th class="num">With-setup-tools</th><th class="num">Minimal</th></tr>
+        <tr><td>Unique sequences / 20 runs</td><td class="num good">10</td><td class="num">19</td></tr>
+        <tr><td>Avg LCS similarity</td><td class="num good">0.849</td><td class="num">0.679</td></tr>
+        <tr><td>Avg tool-path length</td><td class="num good">11.2</td><td class="num">12.6</td></tr>
+      </table>
+      <p class="footer-note">LCS = longest common subsequence of tool calls, normalized — higher = more consistent ordering. With-setup-tools more consistent on <strong>every</strong> dataset.</p>
+    </div>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem">
+      <svg viewBox="0 0 760 330" style="width:100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- timeline -->
+        <line x1="70" y1="60" x2="700" y2="60" stroke="#2d333b" stroke-width="2"/>
+        <!-- turn marker -->
+        <rect x="14" y="38" width="44" height="44" rx="9" fill="#1c2129" stroke="#2d333b"/>
+        <text x="36" y="66" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="700">U1</text>
+        <text x="36" y="100" text-anchor="middle" fill="#8b949e" font-size="10">turn 1</text>
+        <!-- answer -->
+        <circle cx="722" cy="60" r="16" fill="#1c2129" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="722" y="65" text-anchor="middle" fill="#3fb950" font-size="14">✓</text>
+        <text x="722" y="96" text-anchor="middle" fill="#8b949e" font-size="10">answer</text>
+        <!-- tick times -->
+        <g fill="#8b949e" font-size="10" text-anchor="middle">
+          <text x="95" y="46">+0.0s</text><text x="150" y="46">+2.9s</text><text x="255" y="46">+8.5s</text>
+          <text x="430" y="46">+18.1s</text><text x="565" y="46">+25.7s</text><text x="672" y="46">+33.8s</text>
+        </g>
+        <g stroke="#4a5058" stroke-width="1.5">
+          <line x1="95" y1="52" x2="95" y2="68"/><line x1="150" y1="52" x2="150" y2="68"/>
+          <line x1="255" y1="52" x2="255" y2="68"/><line x1="430" y1="52" x2="430" y2="68"/>
+          <line x1="565" y1="52" x2="565" y2="68"/><line x1="672" y1="52" x2="672" y2="68"/>
+        </g>
+        <!-- +0.0s read (setup context) -->
+        <rect x="81" y="78" width="28" height="28" rx="6" fill="#58a6ff"/>
+        <text x="95" y="97" text-anchor="middle" fill="#0d1117" font-size="12" font-weight="700">r</text>
+        <text x="113" y="120" fill="#8b949e" font-size="10" transform="rotate(32 113 120)">diagnose_issues.json</text>
+        <!-- +2.9s: ft_info + slowlog_get (setup, parallel) -->
+        <rect x="136" y="78" width="28" height="28" rx="6" fill="#3fb950"/>
+        <text x="150" y="97" text-anchor="middle" fill="#0d1117" font-size="12" font-weight="700">t</text>
+        <rect x="136" y="114" width="28" height="28" rx="6" fill="#3fb950"/>
+        <text x="150" y="133" text-anchor="middle" fill="#0d1117" font-size="12" font-weight="700">t</text>
+        <text x="168" y="102" fill="#8b949e" font-size="10" transform="rotate(32 168 102)">ft_info</text>
+        <text x="168" y="140" fill="#8b949e" font-size="10" transform="rotate(32 168 140)">slowlog_get</text>
+        <!-- +8.5s ft_profile -->
+        <rect x="241" y="78" width="28" height="28" rx="6" fill="#4a5568"/>
+        <text x="255" y="97" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">t</text>
+        <text x="273" y="112" fill="#8b949e" font-size="10" transform="rotate(32 273 112)">ft_profile</text>
+        <!-- +18.1s: 4 parallel -->
+        <rect x="416" y="78" width="28" height="28" rx="6" fill="#4a5568"/>
+        <rect x="416" y="114" width="28" height="28" rx="6" fill="#4a5568"/>
+        <rect x="416" y="150" width="28" height="28" rx="6" fill="#4a5568"/>
+        <rect x="416" y="186" width="28" height="28" rx="6" fill="#4a5568"/>
+        <g fill="#e6edf3" font-size="12" font-weight="700" text-anchor="middle">
+          <text x="430" y="97">t</text><text x="430" y="133">t</text><text x="430" y="169">t</text><text x="430" y="205">t</text>
+        </g>
+        <text x="448" y="102" fill="#8b949e" font-size="10" transform="rotate(32 448 102)">redis_execute</text>
+        <text x="448" y="140" fill="#8b949e" font-size="10" transform="rotate(32 448 140)">redis_execute</text>
+        <text x="448" y="176" fill="#8b949e" font-size="10" transform="rotate(32 448 176)">ft_profile</text>
+        <text x="448" y="212" fill="#8b949e" font-size="10" transform="rotate(32 448 212)">ft_profile</text>
+        <!-- +25.7s ft_profile -->
+        <rect x="551" y="78" width="28" height="28" rx="6" fill="#4a5568"/>
+        <text x="565" y="97" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">t</text>
+        <text x="583" y="112" fill="#8b949e" font-size="10" transform="rotate(32 583 112)">ft_profile</text>
+        <!-- +33.8s: 2 parallel -->
+        <rect x="658" y="78" width="28" height="28" rx="6" fill="#4a5568"/>
+        <rect x="658" y="114" width="28" height="28" rx="6" fill="#4a5568"/>
+        <g fill="#e6edf3" font-size="12" font-weight="700" text-anchor="middle">
+          <text x="672" y="97">t</text><text x="672" y="133">t</text>
+        </g>
+        <text x="690" y="102" fill="#8b949e" font-size="10" transform="rotate(32 690 102)">redis_execute</text>
+        <text x="690" y="140" fill="#8b949e" font-size="10" transform="rotate(32 690 140)">redis_execute</text>
+        <!-- annotations -->
+        <text x="150" y="30" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">setup</text>
+        <text x="430" y="245" text-anchor="middle" fill="#8b949e" font-size="10">stacked = parallel / overlapping calls</text>
+        <!-- legend -->
+        <g font-size="10" fill="#8b949e">
+          <rect x="70" y="290" width="18" height="18" rx="4" fill="#58a6ff"/><text x="95" y="303" fill="#8b949e">read</text>
+          <rect x="140" y="290" width="18" height="18" rx="4" fill="#3fb950"/><text x="165" y="303">setup tool</text>
+          <rect x="240" y="290" width="18" height="18" rx="4" fill="#4a5568"/><text x="265" y="303">discretionary tool</text>
+          <circle cx="405" cy="299" r="9" fill="#1c2129" stroke="#3fb950"/><text x="422" y="303">answer</text>
+        </g>
+      </svg>
+      <p class="muted" style="font-size:0.95rem;margin-top:0.6rem">One session, one turn — context read + setup tools first, then discretionary drilldowns → answer in ~34s.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MCP experiment: why -->
+<section class="slide">
+  <h2><span class="kicker">Experiment 1 — Tool Granularity</span>Why each setup behaves the way it does</h2>
+  <div class="cols" style="gap:1.6rem">
+    <div class="card"><h3 class="good" style="color:var(--good)">With-setup-tools — the only one with <em>setup tools</em></h3><p>Broad summary stats (timing, counts, iterators) establish runtime context <em>before</em> discretionary drilldowns (diagnosis, iterator tree, details). This layering <em>induces</em> a consistent investigation order.</p></div>
+    <div class="card"><h3>Minimal — strong but unguided</h3><p>Few tools, all necessary — so quality holds and it's marginally fastest. But no setup layer means each run improvises its own path: more calls, 19 unique trajectories in 20 runs.</p></div>
+    <div class="card"><h3>Full — over-instrumented</h3><p>Richest toolset, so the agent explores tools instead of the problem: 390 calls, slowest of the good setups, no quality gain to show for it.</p></div>
+    <div class="card"><h3>Baseline — under-powered</h3><p>Lacks targeted drilldowns, so the agent falls back to raw reads, grep, and bash (49 bash calls) — workable on simple cases, slow and inconsistent otherwise.</p></div>
+  </div>
+  <div class="callout"><p>Granularity is a design dial: too few tools → fallback improvisation; too many → exploration overhead. <strong>Setup tools + discretionary drilldowns = just right</strong> — this is the demonstrated need for dynamic, runtime exploration.</p></div>
+</section>
+
+<!-- 11 · Experiment -->
+<section class="slide">
+  <h2><span class="kicker">Experiment 2 — Knowledge Structure</span>Raw guide vs. diagnostic playbook</h2>
+  <div class="cols">
+    <div class="card">
+      <h3 style="color:var(--warn)">Baseline: raw guide</h3>
+      <p>Same agent spec, knowledge provided as a monolithic <code>RQE-Troubleshooting-Guide.md</code> plus best-practices docs. Agent must find what it needs.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--good)">Treatment: playbook</h3>
+      <p>Same knowledge, restructured as symptoms-router + per-issue handbooks (<span class="num">SQ-04, SQ-07, SQ-11</span> relevant to the tasks).</p>
+    </div>
+  </div>
+  <ul class="spaced" style="margin-top:1.8rem">
+    <li><strong>5 sessions per condition</strong>, identical troubleshooting tasks over 5 <code>FT.PROFILE</code> inputs</li>
+    <li>Both conditions call <code>analyse_ft_profile</code> <span class="num">25×</span> (5 per session) — tool access held constant</li>
+    <li>Only the <strong>knowledge structure</strong> changes</li>
+  </ul>
+</section>
+
+<!-- 13 · Results: quality -->
+<section class="slide">
+  <h2><span class="kicker">Experiment 2 — Results 1/2</span>Answer quality</h2>
+  <div class="legend"><span><span class="sw" style="background:#d29922"></span>Raw guide</span><span><span class="sw" style="background:#3fb950"></span>Playbook</span></div>
+  <div class="bars">
+    <div class="bar-row"><span class="label">First-pass success</span>
+      <div class="bar-track"><div class="bar-fill" style="width:86%;background:#d29922"></div></div><span class="delta num">0.86</span></div>
+    <div class="bar-row"><span class="label"></span>
+      <div class="bar-track"><div class="bar-fill" style="width:95%;background:#3fb950"></div></div><span class="delta num good">0.95</span></div>
+    <div class="bar-row"><span class="label">Answer grounding</span>
+      <div class="bar-track"><div class="bar-fill" style="width:27.3%;background:#d29922"></div></div><span class="delta num">0.27</span></div>
+    <div class="bar-row"><span class="label"></span>
+      <div class="bar-track"><div class="bar-fill" style="width:39.7%;background:#3fb950"></div></div><span class="delta num good">0.40</span></div>
+    <div class="bar-row"><span class="label">Answer specificity</span>
+      <div class="bar-track"><div class="bar-fill" style="width:77.4%;background:#d29922"></div></div><span class="delta num">0.77</span></div>
+    <div class="bar-row"><span class="label"></span>
+      <div class="bar-track"><div class="bar-fill" style="width:88.8%;background:#3fb950"></div></div><span class="delta num good">0.89</span></div>
+    <div class="bar-row"><span class="label">Dead-end rate ↓</span>
+      <div class="bar-track"><div class="bar-fill" style="width:21.2%;background:#d29922"></div></div><span class="delta num">0.21</span></div>
+    <div class="bar-row"><span class="label"></span>
+      <div class="bar-track"><div class="bar-fill" style="width:10.2%;background:#3fb950"></div></div><span class="delta num good">0.10</span></div>
+  </div>
+  <p class="footer-note">Mean over 5 sessions per condition · grounding +45% rel., specificity +15% rel., dead-ends −52%</p>
+</section>
+
+<!-- 14 · Results: cost -->
+<section class="slide">
+  <h2><span class="kicker">Experiment 2 — Results 2/2</span>Cost &amp; reliability</h2>
+  <div class="cols3" style="margin-bottom:2rem">
+    <div class="card" style="text-align:center"><div class="big-stat good">−43%</div><div class="stat-label">total tokens<br><span class="num">326.5k → 185.0k</span></div></div>
+    <div class="card" style="text-align:center"><div class="big-stat good">−48%</div><div class="stat-label">tool error rate<br><span class="num">0.113 → 0.059</span></div></div>
+    <div class="card" style="text-align:center"><div class="big-stat good">−15%</div><div class="stat-label">wall-clock duration<br><span class="num">79.8s → 67.6s</span></div></div>
+  </div>
+  <table>
+    <tr><th>Metric</th><th class="num">Raw guide</th><th class="num">Playbook</th></tr>
+    <tr><td>Cache-read tokens</td><td class="num">218,573</td><td class="num good">108,442 (−50%)</td></tr>
+    <tr><td>Backtracking rate</td><td class="num">0.015</td><td class="num good">0.000</td></tr>
+    <tr><td>Repeated doc reads / session</td><td class="num">0.80</td><td class="num good">0.00</td></tr>
+    <tr><td>Unique documents covered</td><td class="num">8.6</td><td class="num good">9.8</td></tr>
+    <tr><td>Required docs read in all 5 sessions</td><td class="num">no (3/5 typical)</td><td class="num good">yes (5/5)</td></tr>
+  </table>
+</section>
+
+<!-- 15 · What eval caught -->
+<section class="slide">
+  <h2><span class="kicker">Evaluation-Led Design</span>The metrics also tell us what's still broken</h2>
+  <ul class="spaced">
+    <li><strong>Hallucinated-path rate stays high in both</strong> (<span class="num">0.94 → 0.86</span>): agents still guess near-miss paths (<code>ft.profile</code> vs <code>ftProfile1.txt</code>) before consulting the router — the next spec iteration targets this directly</li>
+    <li><strong>Grounding variance went up</strong> (σ <span class="num">0.05 → 0.14</span>) even as the mean improved: one or two playbook sessions skip an optional handbook — coverage tables point at exactly which reads were missed</li>
+    <li>Exploration breadth/depth barely moved — the playbook doesn't make the agent <em>less curious</em>, it makes exploration <em>land</em></li>
+  </ul>
+  <div class="callout"><p>This is the loop: <strong>trajectory metrics → identify failure mode → revise spec/playbook → re-measure.</strong> Design choices become testable hypotheses.</p></div>
+</section>
+
+<!-- 16 · Takeaways -->
+<section class="slide">
+  <h2><span class="kicker">Takeaways</span>Three things to steal</h2>
+  <div class="cols3">
+    <div class="card">
+      <div class="takeaway-num">1</div>
+      <h3 style="margin-top:0.8rem">Evaluation-led spec design</h3>
+      <p>Let trajectory metrics — not intuition — drive how you structure agent specs, tool granularity, and ordering constraints.</p>
+    </div>
+    <div class="card">
+      <div class="takeaway-num">2</div>
+      <h3 style="margin-top:0.8rem">KB → playbook pipelines</h3>
+      <p>Restructure human knowledge bases into routed diagnostic playbooks: where to look, what to interpret, how to act — for efficient, reliable trajectories.</p>
+    </div>
+    <div class="card">
+      <div class="takeaway-num">3</div>
+      <h3 style="margin-top:0.8rem">Measure the trajectory</h3>
+      <p>Correctness, completeness, and usefulness of the answer are downstream of tool-call coverage, ordering, and duplication. Instrument those.</p>
+    </div>
+  </div>
+  <div class="callout"><p>Same model, same tools, same knowledge — <strong>structure alone</strong> bought ~half the cost and a large step toward deterministic, debuggable trajectories.</p></div>
+</section>
+
+<div id="progress"></div>
+<div id="counter"></div>
+<div id="hint">← → or click to navigate</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    document.getElementById('progress').style.width = ((i + 1) / slides.length * 100) + '%';
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') show(i + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(i - 1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  document.addEventListener('click', e => {
+    if (e.clientX > window.innerWidth / 2) show(i + 1); else show(i - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>
