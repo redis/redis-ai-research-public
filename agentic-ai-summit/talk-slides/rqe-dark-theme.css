@@ -1,0 +1,160 @@
+/* @theme rqe-dark */
+/* Dark theme for the RQE spec-driven agents talk. Edit freely — colors are defined once here. */
+
+@import 'default';
+
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel2: #1c2129;
+  --border: #2d333b;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #ff4438;
+  --blue: #58a6ff;
+  --good: #3fb950;
+  --warn: #d29922;
+  --mono: "SF Mono", "Fira Code", Consolas, monospace;
+}
+
+section {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 22px;
+  padding: 56px 70px;
+  line-height: 1.5;
+}
+
+/* h6 = red uppercase kicker above the slide title */
+h6 {
+  color: var(--accent);
+  font-size: 0.62em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0 0 0.4em 0;
+}
+
+h1 {
+  color: var(--text);
+  font-size: 1.55em;
+  font-weight: 700;
+  margin: 0 0 0.8em 0;
+}
+
+h2 { color: var(--text); font-size: 1.25em; }
+h3 { color: var(--blue); font-size: 1.0em; }
+
+a { color: var(--blue); }
+strong { color: var(--text); }
+em { color: var(--text); }
+
+ul li, ol li { margin-bottom: 0.45em; }
+ul li::marker { color: var(--accent); }
+
+code {
+  font-family: var(--mono);
+  background: var(--panel2);
+  color: var(--text);
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  font-size: 0.85em;
+}
+
+pre {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9em 1.1em;
+  line-height: 1.55;
+}
+pre code { background: none; border: none; font-size: 0.78em; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  padding: 0.5em 0.8em;
+}
+td {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5em 0.8em;
+  background: none !important;
+  color: var(--text);
+}
+
+/* pagination */
+section::after { color: var(--muted); font-size: 0.6em; }
+
+/* ---------- reusable classes (use via inline HTML) ---------- */
+
+.muted { color: var(--muted); }
+.accent { color: var(--accent); }
+.blue { color: var(--blue); }
+.good { color: var(--good); }
+.warn { color: var(--warn); }
+.num { font-family: var(--mono); }
+.small { font-size: 0.75em; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4em; align-items: start; }
+.cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1em; align-items: stretch; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9em 1.1em;
+  font-size: 0.82em;
+}
+.card h3 { margin-top: 0; margin-bottom: 0.4em; font-size: 1.0em; }
+.card p { margin: 0.3em 0; }
+
+.callout {
+  border-left: 4px solid var(--accent);
+  background: var(--panel);
+  padding: 0.7em 1.1em;
+  border-radius: 0 10px 10px 0;
+  margin-top: 1.0em;
+  font-size: 0.9em;
+}
+
+.flow { display: flex; align-items: center; gap: 0.7em; flex-wrap: wrap; margin: 0.8em 0; font-size: 0.75em; }
+.flow .step {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6em 0.9em;
+  text-align: center;
+}
+.flow .arrow { color: var(--accent); font-size: 1.3em; }
+
+/* stat cards (results slide) */
+.big-stat { font-size: 2.2em; font-weight: 800; line-height: 1; color: var(--good); }
+.stat-label { font-size: 0.7em; color: var(--muted); margin-top: 0.4em; }
+
+/* bar chart rows */
+.bars { display: flex; flex-direction: column; gap: 0.55em; margin-top: 0.6em; font-size: 0.78em; }
+.bar-row { display: grid; grid-template-columns: 13em 1fr 4em; gap: 0.8em; align-items: center; }
+.bar-row .label { text-align: right; }
+.bar-track { background: var(--panel2); border-radius: 6px; height: 1.1em; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; }
+.bar-row .delta { font-family: var(--mono); font-weight: 700; }
+.legend { display: flex; gap: 1.6em; font-size: 0.75em; color: var(--muted); margin-bottom: 0.4em; }
+.legend .sw { display: inline-block; width: 0.9em; height: 0.9em; border-radius: 3px; vertical-align: -0.1em; margin-right: 0.4em; }
+
+/* ---------- title slide ---------- */
+section.title { display: flex; flex-direction: column; justify-content: center; }
+section.title h1 { font-size: 2.1em; line-height: 1.2; }
+section.title h1 .accent { color: var(--accent); }
+section.title .subtitle { color: var(--muted); font-size: 1.0em; margin-top: 0.6em; }
+section.title .authors { margin-top: 2.2em; font-size: 0.85em; }
