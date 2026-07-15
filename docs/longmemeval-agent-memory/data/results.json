@@ -1,0 +1,250 @@
+{
+  "meta": {
+    "title": "LongMemEval small — agent memory evaluation",
+    "benchmark_version": "Original chat-session LongMemEval (v1), not LongMemEval-V2",
+    "questions": 500,
+    "task_types": 6,
+    "answer_model": "gpt-4o",
+    "judge_model": "gpt-4o",
+    "primary_metric": "task-averaged accuracy",
+    "evaluation_date": "2026-06",
+    "cost_formula": "ingest_usd_per_session + 5.13 * query_usd_per_question",
+    "cost_scope": "Measured LLM token usage at list prices; excludes infrastructure, hosting, and unobserved server-side spend."
+  },
+  "redis_strategies": [
+    {
+      "name": "Redis Instruct",
+      "task_averaged_accuracy": 72.3,
+      "kind": "redis",
+      "note": "LLM-extracted one-fact-per-row memories."
+    },
+    {
+      "name": "Remis",
+      "task_averaged_accuracy": 83.4,
+      "kind": "redis",
+      "note": "Figure from the evaluation write-up. A matching raw run was not identified in the retained artifacts."
+    },
+    {
+      "name": "Remis + Instruct",
+      "task_averaged_accuracy": 86.14,
+      "sample_weighted_accuracy": 85.0,
+      "correct": 425,
+      "total": 500,
+      "kind": "redis",
+      "note": "Complete official small-split aggregate: 86.14% task-averaged and 85.0% sample-weighted. Remis top_k=5, context_window=1; Instruct search_limit=40."
+    }
+  ],
+  "leaderboard": [
+    {
+      "name": "OMEGA",
+      "accuracy": 95.4,
+      "kind": "published",
+      "model": "GPT-4.1",
+      "note": "Published by the system author; not reproduced in this evaluation."
+    },
+    {
+      "name": "PwC Chronos",
+      "accuracy": 92.6,
+      "kind": "published",
+      "model": "gpt-4o",
+      "note": "Published figure; not reproduced in this evaluation."
+    },
+    {
+      "name": "Remis + Instruct",
+      "accuracy": 86.14,
+      "kind": "redis",
+      "model": "gpt-4o",
+      "note": "Complete 500-question small-split aggregate: 86.14% task-averaged and 85.0% sample-weighted (425/500)."
+    },
+    {
+      "name": "Oracle Agent Memory",
+      "accuracy": 86.0,
+      "kind": "reproduced",
+      "model": "gpt-5.5 xhigh",
+      "note": "Reproduced, but with a stronger answer model; not directly comparable to gpt-4o runs."
+    },
+    {
+      "name": "Mastra OM",
+      "accuracy": 84.2,
+      "kind": "reproduced",
+      "model": "gemini + gpt-4o",
+      "note": "Reproduced score matched the published figure."
+    },
+    {
+      "name": "Remis",
+      "accuracy": 83.4,
+      "kind": "redis",
+      "model": "gpt-4o",
+      "note": "Redis hybrid semantic RAG figure from the write-up; a matching retained raw run was not identified."
+    },
+    {
+      "name": "Supermemory",
+      "accuracy": 81.6,
+      "kind": "published",
+      "model": "not disclosed here",
+      "note": "Published figure; not reproduced in this evaluation."
+    },
+    {
+      "name": "emergence-fast",
+      "accuracy": 81.3,
+      "kind": "reproduced",
+      "model": "gpt-4o answer",
+      "note": "Reproduced result; published figure was 82.4%."
+    },
+    {
+      "name": "Amazon AgentCore",
+      "accuracy": 77.0,
+      "kind": "reproduced",
+      "model": "gpt-4o answer",
+      "note": "Available raw backing run used the oracle split, not small; all three memory strategies enabled, top_k=25."
+    },
+    {
+      "name": "Redis Instruct",
+      "accuracy": 72.3,
+      "kind": "redis",
+      "model": "gpt-4o",
+      "note": "LLM-extracted Redis strategy."
+    },
+    {
+      "name": "langmem",
+      "accuracy": 71.9,
+      "kind": "reproduced",
+      "model": "gpt-4o",
+      "note": "Ingest extraction token spend was not captured."
+    },
+    {
+      "name": "Zep / Graphiti",
+      "accuracy": 71.2,
+      "kind": "published",
+      "model": "gpt-4o",
+      "note": "Published figure; not reproduced in this evaluation."
+    },
+    {
+      "name": "Redis AMS",
+      "accuracy": 64.0,
+      "kind": "redis",
+      "model": "gpt-4o",
+      "note": "Server-side ingest cost was not captured."
+    },
+    {
+      "name": "RAG-mem",
+      "accuracy": 61.5,
+      "kind": "redis",
+      "model": "gpt-4o",
+      "note": "Fixed-chunk Redis RAG baseline, top_k=20; matching small-split run contains 412/500 completed questions."
+    },
+    {
+      "name": "Mem0",
+      "accuracy": 49.0,
+      "kind": "published",
+      "model": "not disclosed here",
+      "note": "Published figure; not reproduced in this evaluation."
+    },
+    {
+      "name": "Google Vertex Memory Bank",
+      "accuracy": 42.4,
+      "kind": "reproduced",
+      "model": "gpt-4o answer",
+      "note": "Shipping product measured here. The ≈70% contextual figure comes from its related research paper."
+    }
+  ],
+  "cost_accuracy": [
+    {
+      "name": "Remis + Instruct",
+      "accuracy": 86.14,
+      "cost_usd": 0.0703,
+      "kind": "redis",
+      "lower_bound": false,
+      "note": "Accuracy is the complete 500-question aggregate; cost is the evaluation's published token-spend estimate."
+    },
+    {
+      "name": "Remis",
+      "accuracy": 83.4,
+      "cost_usd": 0.1066,
+      "kind": "redis",
+      "lower_bound": false,
+      "note": "Accuracy figure is from the write-up; matching raw run was not identified."
+    },
+    {
+      "name": "Redis Instruct",
+      "accuracy": 72.3,
+      "cost_usd": 0.0206,
+      "kind": "redis",
+      "lower_bound": false
+    },
+    {
+      "name": "Redis AMS",
+      "accuracy": 64.0,
+      "cost_usd": 0.0103,
+      "kind": "redis",
+      "lower_bound": true
+    },
+    {
+      "name": "RAG-mem",
+      "accuracy": 61.5,
+      "cost_usd": 0.1195,
+      "kind": "redis",
+      "lower_bound": false,
+      "note": "Matching accuracy run completed 412/500 questions."
+    },
+    {
+      "name": "Mastra OM",
+      "accuracy": 84.2,
+      "cost_usd": 0.365,
+      "kind": "reproduced",
+      "lower_bound": false
+    },
+    {
+      "name": "emergence-fast",
+      "accuracy": 81.3,
+      "cost_usd": 0.2488,
+      "kind": "reproduced",
+      "lower_bound": false
+    },
+    {
+      "name": "Amazon AgentCore",
+      "accuracy": 77.0,
+      "cost_usd": 0.0229,
+      "kind": "reproduced",
+      "lower_bound": true,
+      "note": "Available raw backing uses the oracle split; server-side ingest cost is unavailable."
+    },
+    {
+      "name": "langmem",
+      "accuracy": 71.9,
+      "cost_usd": 0.0097,
+      "kind": "reproduced",
+      "lower_bound": true
+    },
+    {
+      "name": "Google Vertex MB",
+      "accuracy": 42.4,
+      "cost_usd": 0.0202,
+      "kind": "reproduced",
+      "lower_bound": true
+    }
+  ],
+  "published_vs_measured": [
+    {
+      "name": "Google Vertex Memory Bank",
+      "published": 70.0,
+      "measured": 42.4,
+      "delta_pp": -27.6,
+      "note": "Published context is from the related research paper, not a product-reported score."
+    },
+    {
+      "name": "Amazon AgentCore",
+      "published": 73.6,
+      "measured": 77.0,
+      "delta_pp": 3.4,
+      "note": "Measured with all three strategies and top_k=25; retained raw backing uses the oracle split."
+    },
+    {
+      "name": "Oracle Agent Memory",
+      "published": 93.8,
+      "measured": 86.0,
+      "delta_pp": -7.8,
+      "note": "Measured answer model was gpt-5.5 xhigh, unlike the common gpt-4o backbone."
+    }
+  ]
+}

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A measured, reproducible look at Redis agent-memory strategies on the 500-question LongMemEval small split."
+    />
+    <meta name="theme-color" content="#f5f1e8" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="What we learned benchmarking agent memory on LongMemEval" />
+    <meta
+      property="og:description"
+      content="Raw evidence and extracted facts were more useful together—but the benchmark and cost comparisons need careful qualification."
+    />
+    <meta property="og:image" content="assets/social-card.svg" />
+    <title>What we learned benchmarking agent memory on LongMemEval</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#article">Skip to article</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Redis Applied AI Research, home">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3 29 9.2 16 15.4 3 9.2 16 3Z" />
+          <path d="m3 15.1 13 6.2 13-6.2v5.2L16 26.5 3 20.3v-5.2Z" />
+        </svg>
+        <span>Redis Applied AI Research</span>
+      </a>
+      <nav aria-label="Article sections">
+        <a href="#results">Results</a>
+        <a href="#method">Method</a>
+        <a href="#limits">Limits</a>
+      </nav>
+    </header>
+
+    <main id="article">
+      <article>
+        <header class="hero" id="top">
+          <div class="hero-copy">
+            <p class="eyebrow">Agent memory · LongMemEval · June 2026</p>
+            <h1>What we learned benchmarking agent memory on LongMemEval</h1>
+            <p class="dek">
+              Raw conversation evidence and extracted facts were more useful together than
+              either was alone. On our run, the combined Redis strategy reached
+              <strong>86.1% task-averaged accuracy</strong>—with qualifications that matter.
+            </p>
+            <div class="hero-meta">
+              <span>500-question benchmark</span>
+              <span>6 task types</span>
+              <span>gpt-4o answer model and judge</span>
+            </div>
+          </div>
+
+          <aside class="headline-number" aria-label="Headline result">
+            <span class="number">86.1<small>%</small></span>
+            <span class="number-label">task-averaged accuracy</span>
+            <span class="number-note">85.0% sample-weighted overall · 425/500 correct</span>
+          </aside>
+        </header>
+
+        <section class="read-this-first" aria-labelledby="read-first-title">
+          <p class="section-kicker">Before the numbers</p>
+          <h2 id="read-first-title">Notes on the comparison</h2>
+          <div class="qualification-grid">
+            <p>
+              <strong>The Redis run.</strong> The headline result covers all 500 questions
+              in the LongMemEval small split, using gpt-4o for answers and judging.
+            </p>
+            <p>
+              <strong>Other systems.</strong> Some were run through our harness; others are
+              published figures shown for context. Their benchmark split or answer model may
+              differ, and the chart notes those cases.
+            </p>
+            <p>
+              <strong>Cost estimates.</strong> Dollar estimates cover measured LLM token
+              usage at list prices. They exclude infrastructure, hosting, and any hidden
+              server-side ingest spend.
+            </p>
+          </div>
+        </section>
+
+        <section class="narrative" id="method">
+          <div class="section-heading">
+            <p class="section-kicker">The problem</p>
+            <h2>Long histories are costly to include in every prompt</h2>
+          </div>
+          <div class="prose">
+            <p>
+              Keeping every prior conversation in the prompt becomes expensive and slow as
+              history grows. An external memory system separates that work into two paths:
+              ingest a session once, then retrieve a small amount of relevant context for
+              each question.
+            </p>
+            <p>
+              LongMemEval tests whether that retrieved context is sufficient. Its small
+              split contains 500 questions over multi-session chat histories, covering
+              user and assistant facts, preferences, knowledge updates, evidence spread
+              across sessions, and temporal reasoning.
+            </p>
+          </div>
+        </section>
+
+        <section class="strategy-section" aria-labelledby="strategies-title">
+          <div class="section-heading">
+            <p class="section-kicker">Three Redis strategies</p>
+            <h2 id="strategies-title">Keep the evidence, curate the facts, or do both</h2>
+          </div>
+
+          <div class="strategy-grid">
+            <article class="strategy-card">
+              <span class="strategy-index">01</span>
+              <h3>Instruct</h3>
+              <p class="strategy-type">LLM-extracted memory</p>
+              <p>
+                An extractor sees each session and the current memory store, then creates,
+                updates, or deletes granular facts. It consolidates changes well, but
+                omitted details cannot be recovered later.
+              </p>
+              <div class="flow" aria-label="Instruct flow">
+                <span>session</span><i>→</i><span>extract facts</span><i>→</i><span>retrieve</span>
+              </div>
+            </article>
+
+            <article class="strategy-card">
+              <span class="strategy-index">02</span>
+              <h3>Remis</h3>
+              <p class="strategy-type">Hybrid semantic RAG</p>
+              <p>
+                Sessions are split at topic shifts and indexed with dense and BM25 signals.
+                Neighboring chunks expand the retrieved context. Exact details survive,
+                though the answer model sees more noise.
+              </p>
+              <div class="flow" aria-label="Remis flow">
+                <span>session</span><i>→</i><span>hybrid index</span><i>→</i><span>raw excerpts</span>
+              </div>
+            </article>
+
+            <article class="strategy-card strategy-card-combined">
+              <span class="strategy-index">03</span>
+              <h3>Remis + Instruct</h3>
+              <p class="strategy-type">Combined context</p>
+              <p>
+                Both stores are queried, then one answer call receives two labeled sections:
+                conversation excerpts and extracted memories. The answer model can draw from
+                either source when responding.
+              </p>
+              <div class="flow" aria-label="Combined flow">
+                <span>raw excerpts</span><b>+</b><span>facts</span><i>→</i><span>answer</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="results-section" id="results" aria-labelledby="results-title">
+          <div class="section-heading">
+            <p class="section-kicker">What we measured</p>
+            <h2 id="results-title">Combining both improved accuracy</h2>
+            <p>
+              The primary metric gives each of the six task types equal weight. This avoids
+              letting the larger categories dominate the result.
+            </p>
+          </div>
+
+          <figure class="chart-block">
+            <div class="chart-header">
+              <div>
+                <h3>Redis strategy accuracy</h3>
+                <p>Task-averaged accuracy on LongMemEval small (%)</p>
+              </div>
+              <span class="chart-unit">Higher is better</span>
+            </div>
+            <div id="strategy-chart" class="chart" role="img" aria-label="Bar chart comparing Redis strategy accuracy"></div>
+            <figcaption>
+              The combined result is the complete 500-question small-split aggregate using
+              the gpt-4o answer model and official gpt-4o judge. Task-averaged and
+              sample-weighted accuracy are different aggregations.
+            </figcaption>
+          </figure>
+
+          <figure class="chart-block chart-wide">
+            <div class="chart-header">
+              <div>
+                <h3>Competitive landscape</h3>
+                <p>Task-averaged accuracy on LongMemEval small (%)</p>
+              </div>
+              <div class="legend" aria-label="Chart legend">
+                <span><i class="legend-swatch redis"></i>Redis run</span>
+                <span><i class="legend-swatch reproduced"></i>Third-party, reproduced</span>
+                <span><i class="legend-swatch published"></i>Published only</span>
+              </div>
+            </div>
+            <div id="leaderboard-chart" class="chart" role="img" aria-label="Leaderboard bar chart"></div>
+            <figcaption>
+              Published-only values are contextual, not independently verified here. Model
+              backbones, splits, completion counts, and system boundaries can differ; hover
+              or focus a row for its note.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="narrative finding">
+          <div class="section-heading">
+            <p class="section-kicker">Interpretation</p>
+            <h2>The useful finding is complementarity—not that one retrieval pattern won</h2>
+          </div>
+          <div class="prose">
+            <p>
+              Extracted memories help consolidate information spread across sessions and
+              resolve changes over time. Raw chunks preserve quotes, names, dates, and
+              numbers that an extractor may compress away. In the combined setup, the
+              answer model can use either representation in one call.
+            </p>
+            <p>
+              The experiment supports that explanation for this benchmark and configuration.
+              It does not show that every application needs two stores, or that the same
+              trade-off will hold for different histories, models, prompts, or latency
+              budgets.
+            </p>
+          </div>
+        </section>
+
+        <section class="economics" aria-labelledby="economics-title">
+          <div class="section-heading">
+            <p class="section-kicker">Cost and latency</p>
+            <h2 id="economics-title">Accuracy is only one part of a production memory system</h2>
+            <p>
+              We estimated a holistic per-session LLM cost as one ingest plus 5.13 queries,
+              the average number of user turns per session in this benchmark split.
+            </p>
+          </div>
+
+          <figure class="chart-block">
+            <div class="chart-header">
+              <div>
+                <h3>Measured accuracy vs. estimated LLM cost</h3>
+                <p>Total memory cost per session (USD, log scale)</p>
+              </div>
+              <span class="chart-unit">Upper-left is better</span>
+            </div>
+            <div id="cost-chart" class="chart cost-chart" role="img" aria-label="Scatter plot of accuracy and estimated cost"></div>
+            <figcaption>
+              Cost = ingest $/session + 5.13 × query $/question. Prices use measured token
+              usage and list rates; infrastructure and hosting are excluded. Arrows mark
+              lower bounds where server-side spend was unavailable. These estimates inherit
+              the comparability limits of their associated accuracy runs.
+            </figcaption>
+          </figure>
+
+          <div class="metric-strip" aria-label="Cost comparison">
+            <div>
+              <span class="metric-value">$0.0703</span>
+              <span class="metric-label">estimated per session<br />Remis + Instruct</span>
+            </div>
+            <div>
+              <span class="metric-value">≈5.2×</span>
+              <span class="metric-label">lower than reproduced<br />Mastra OM cost</span>
+            </div>
+            <div>
+              <span class="metric-value">1.78s</span>
+              <span class="metric-label">measured query latency<br />for the combined run</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="reproduction" aria-labelledby="reproduction-title">
+          <div class="section-heading">
+            <p class="section-kicker">Why rerun benchmarks</p>
+            <h2 id="reproduction-title">Published figures did not reliably predict our runs</h2>
+            <p>
+              Reproduced scores moved in both directions. That does not establish that a
+              published number is wrong: products, prompts, defaults, and answer models
+              differ. It does show why results should be measured under the conditions that
+              matter to your application.
+            </p>
+          </div>
+
+          <figure class="chart-block">
+            <div class="chart-header">
+              <div>
+                <h3>Published figure vs. our measurement</h3>
+                <p>LongMemEval accuracy (%)</p>
+              </div>
+              <div class="legend">
+                <span><i class="legend-swatch published"></i>Published figure</span>
+                <span><i class="legend-swatch reproduced"></i>Measured here</span>
+              </div>
+            </div>
+            <div id="reproduction-chart" class="chart" role="img" aria-label="Paired comparison of published and measured accuracy"></div>
+            <figcaption>
+              Google’s ≈70% figure comes from the research paper behind the service, not a
+              product claim. Oracle’s reproduced run used gpt-5.5 xhigh, so it is not directly
+              comparable with the gpt-4o rows. The available AgentCore raw run used the
+              oracle split rather than the small split used by the chart’s other measurements.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="limits" id="limits" aria-labelledby="limits-title">
+          <div class="section-heading">
+            <p class="section-kicker">Limits</p>
+            <h2 id="limits-title">What this evaluation does not establish</h2>
+          </div>
+          <ol class="limits-list">
+            <li>
+              <span>01</span>
+              <p>
+                <strong>One benchmark shape.</strong> LongMemEval small has a fixed question
+                mix and roughly 24 sessions per example on average. Production histories can
+                be longer, noisier, and more dynamic.
+              </p>
+            </li>
+            <li>
+              <span>02</span>
+              <p>
+                <strong>One answer backbone for most reproduced runs.</strong> The findings
+                may shift with newer or smaller answer and extraction models.
+              </p>
+            </li>
+            <li>
+              <span>03</span>
+              <p>
+                <strong>An LLM judge.</strong> The official binary judge improves consistency,
+                but it is not error-free and does not measure answer style, calibration, or
+                user satisfaction.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="conclusion" aria-labelledby="conclusion-title">
+          <p class="section-kicker">Bottom line</p>
+          <h2 id="conclusion-title">Use the result as a design clue, then test your own workload</h2>
+          <p>
+            On this evaluation, preserving raw evidence alongside curated facts improved
+            task-averaged accuracy and produced a favorable measured cost/accuracy trade-off.
+            The result is strong enough to motivate the architecture, not broad enough to
+            settle agent memory.
+          </p>
+        </section>
+
+        <footer class="article-footer">
+          <div>
+            <p class="section-kicker">Method note</p>
+            <p>
+              For each completed example, the harness reset the store, ingested the haystack
+              sessions, queried the test question, and sent the predicted and reference
+              answers to the official gpt-4o binary judge. Results shown here were reconciled
+              against the run metadata, judgments, and cost script.
+            </p>
+          </div>
+          <div class="footer-links">
+            <a href="data/results.json">View chart data</a>
+            <a href="https://arxiv.org/abs/2410.10813" rel="noreferrer">LongMemEval paper</a>
+          </div>
+          <p class="copyright">Redis Applied AI Research · Evaluation summary · June 2026</p>
+        </footer>
+      </article>
+    </main>
+
+    <div class="tooltip" id="chart-tooltip" role="status" aria-live="polite"></div>
+  </body>
+</html>

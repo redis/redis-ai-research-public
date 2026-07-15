@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">What we learned benchmarking agent memory on LongMemEval</title>
+  <desc id="desc">Editorial cover showing an 86.1 percent task-averaged result, with qualifications.</desc>
+  <rect width="1200" height="630" fill="#f5f1e8"/>
+  <path d="M0 0h1200v8H0z" fill="#d52b1e"/>
+  <path d="M0 622h1200v8H0z" fill="#171716"/>
+  <g fill="none" stroke="#cfc6b8">
+    <path d="M0 112h1200M0 220h1200M0 328h1200M0 436h1200M0 544h1200"/>
+    <path d="M72 0v630M1128 0v630"/>
+  </g>
+  <g transform="translate(72 52)">
+    <path d="m22 0 22 10.5L22 21 0 10.5 22 0Z" fill="#d52b1e"/>
+    <path d="m0 21 22 10.5L44 21v9L22 40.5 0 30v-9Z" fill="#d52b1e"/>
+    <text x="58" y="29" fill="#171716" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="1">REDIS APPLIED AI RESEARCH</text>
+  </g>
+  <text x="72" y="188" fill="#d52b1e" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="3">AGENT MEMORY / LONGMEMEVAL</text>
+  <text x="72" y="282" fill="#171716" font-family="Georgia, serif" font-size="67" letter-spacing="-3">
+    <tspan x="72">What we learned benchmarking</tspan>
+    <tspan x="72" dy="76">agent memory</tspan>
+  </text>
+  <g transform="translate(814 180)">
+    <rect width="314" height="290" fill="#d52b1e"/>
+    <rect x="16" y="16" width="282" height="258" fill="none" stroke="#fffdf8" stroke-opacity=".55"/>
+    <text x="157" y="140" fill="#fffdf8" font-family="Georgia, serif" font-size="91" text-anchor="middle" letter-spacing="-5">86.1%</text>
+    <text x="157" y="177" fill="#fffdf8" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">TASK-AVERAGED ACCURACY</text>
+    <text x="157" y="217" fill="#fffdf8" fill-opacity=".78" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">85.0% overall / 425 of 500 correct</text>
+  </g>
+  <text x="72" y="554" fill="#68645d" font-family="Georgia, serif" font-size="25">Raw evidence + extracted facts, measured with the caveats intact.</text>
+</svg>
