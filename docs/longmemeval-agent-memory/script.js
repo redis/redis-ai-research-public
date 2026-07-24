@@ -350,11 +350,11 @@ function drawCostChart(data) {
   );
 
   const labelOffsets = {
-    "Remis + Instruct": [12, -15],
-    Remis: [12, 18],
-    "Redis Instruct": [12, -8],
-    "Redis AMS": [12, 16],
-    "RAG-mem": [12, 18],
+    "Redis Agent Memory (combined)": [12, -15],
+    "Redis Agent Memory (Remis)": [12, 18],
+    "Redis Agent Memory (Instruct)": [12, -8],
+    "Redis Agent Memory (AMS)": [12, 16],
+    "Redis Agent Memory (RAG)": [12, 18],
     "Mastra OM": [-12, -13],
     "emergence-fast": [-12, 19],
     "Amazon AgentCore": [12, -13],
@@ -391,9 +391,9 @@ function drawCostChart(data) {
       svgEl("circle", {
         cx: px,
         cy: py,
-        r: item.name === "Remis + Instruct" ? 9 : 6.5,
+        r: item.name === "Redis Agent Memory (combined)" ? 9 : 6.5,
         fill,
-        stroke: item.name === "Remis + Instruct" ? COLORS.ink : "none",
+        stroke: item.name === "Redis Agent Memory (combined)" ? COLORS.ink : "none",
         "stroke-width": 2,
       }),
       svgEl(
@@ -402,8 +402,8 @@ function drawCostChart(data) {
           x: px + dx,
           y: py + dy,
           fill: COLORS.ink,
-          "font-size": item.name === "Remis + Instruct" ? 12 : 10.5,
-          "font-weight": item.name === "Remis + Instruct" ? 800 : 600,
+          "font-size": item.name === "Redis Agent Memory (combined)" ? 12 : 10.5,
+          "font-weight": item.name === "Redis Agent Memory (combined)" ? 800 : 600,
           "text-anchor": anchor,
         },
         item.name,
@@ -416,6 +416,186 @@ function drawCostChart(data) {
       `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% task-averaged accuracy<br>${item.lower_bound ? "At least " : ""}$${item.cost_usd.toFixed(4)} estimated LLM cost/session${item.lower_bound ? "<br>Server-side cost is not fully observed." : ""}${item.note ? `<br>${item.note}` : ""}`,
     );
     svg.append(group);
+  });
+
+  root.replaceChildren(svg);
+}
+
+function drawExtractionChart(data) {
+  const root = document.querySelector("#extraction-chart");
+  const width = 980;
+  const height = 520;
+  const margin = { top: 30, right: 45, bottom: 80, left: 65 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+  const minCost = 0.15;
+  const maxCost = 30;
+  const minAccuracy = 20;
+  const maxAccuracy = 90;
+  const logMin = Math.log10(minCost);
+  const logMax = Math.log10(maxCost);
+  const x = (value) =>
+    margin.left + ((Math.log10(value) - logMin) / (logMax - logMin)) * innerWidth;
+  const y = (value) =>
+    margin.top + innerHeight - ((value - minAccuracy) / (maxAccuracy - minAccuracy)) * innerHeight;
+  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
+
+  [20, 30, 40, 50, 60, 70, 80, 90].forEach((tick) => {
+    const gy = y(tick);
+    svg.append(
+      svgEl("line", {
+        x1: margin.left,
+        x2: margin.left + innerWidth,
+        y1: gy,
+        y2: gy,
+        stroke: COLORS.line,
+      }),
+      svgEl(
+        "text",
+        {
+          x: margin.left - 10,
+          y: gy + 4,
+          fill: COLORS.muted,
+          "font-size": 11,
+          "text-anchor": "end",
+        },
+        `${tick}%`,
+      ),
+    );
+  });
+
+  [0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 20, 30].forEach((tick) => {
+    const gx = x(tick);
+    svg.append(
+      svgEl("line", {
+        x1: gx,
+        x2: gx,
+        y1: margin.top,
+        y2: margin.top + innerHeight,
+        stroke: COLORS.line,
+        "stroke-dasharray": "3 5",
+        opacity: 0.7,
+      }),
+      svgEl(
+        "text",
+        {
+          x: gx,
+          y: margin.top + innerHeight + 27,
+          fill: COLORS.muted,
+          "font-size": 10,
+          "text-anchor": "middle",
+        },
+        `$${tick}`,
+      ),
+    );
+  });
+
+  svg.append(
+    svgEl(
+      "text",
+      {
+        x: margin.left + innerWidth / 2,
+        y: height - 13,
+        fill: COLORS.muted,
+        "font-size": 12,
+        "text-anchor": "middle",
+      },
+      "Cost per 1M conversation tokens (USD, log scale)",
+    ),
+    svgEl(
+      "text",
+      {
+        x: 17,
+        y: margin.top + innerHeight / 2,
+        fill: COLORS.muted,
+        "font-size": 12,
+        "text-anchor": "middle",
+        transform: `rotate(-90 17 ${margin.top + innerHeight / 2})`,
+      },
+      "Question-level accuracy",
+    ),
+  );
+
+  const labelBelow = new Set([
+    "gpt-5-nano:high",
+    "gpt-5-mini:minimal",
+    "gpt-5:minimal",
+    "gpt-4o:non-reasoning",
+  ]);
+
+  data.series.forEach((series) => {
+    if (series.points.length > 1) {
+      const path = series.points
+        .map((point, index) => {
+          const command = index === 0 ? "M" : "L";
+          return `${command} ${x(point.cost_per_million_conversation_tokens)} ${y(point.accuracy)}`;
+        })
+        .join(" ");
+      svg.append(
+        svgEl("path", {
+          d: path,
+          fill: "none",
+          stroke: series.color,
+          "stroke-width": 2.5,
+          opacity: 0.9,
+        }),
+      );
+    }
+
+    series.points.forEach((point) => {
+      const px = x(point.cost_per_million_conversation_tokens);
+      const py = y(point.accuracy);
+      const group = svgEl("g");
+      const key = `${series.name}:${point.effort}`;
+      const labelY = labelBelow.has(key) ? py + 23 : py - 13;
+
+      if (series.name === "gpt-4o") {
+        group.append(
+          svgEl("rect", {
+            x: px - 7,
+            y: py - 7,
+            width: 14,
+            height: 14,
+            fill: series.color,
+            stroke: COLORS.paper,
+            "stroke-width": 2,
+          }),
+        );
+      } else {
+        group.append(
+          svgEl("circle", {
+            cx: px,
+            cy: py,
+            r: point.accuracy === 82 ? 8 : 6.5,
+            fill: series.color,
+            stroke: COLORS.paper,
+            "stroke-width": 2,
+          }),
+        );
+      }
+
+      group.append(
+        svgEl(
+          "text",
+          {
+            x: px,
+            y: labelY,
+            fill: series.color,
+            "font-size": point.accuracy === 82 ? 12 : 10.5,
+            "font-weight": point.accuracy === 82 ? 800 : 650,
+            "text-anchor": "middle",
+          },
+          `${point.effort} · ${point.accuracy.toFixed(0)}%`,
+        ),
+      );
+
+      makeInteractive(
+        group,
+        `${series.name}, ${point.effort}: ${point.accuracy}% question-level accuracy`,
+        `<strong>${series.name} · ${point.effort}</strong><br>${point.accuracy.toFixed(1)}% question-level accuracy<br>${point.task_averaged_accuracy.toFixed(1)}% task-averaged accuracy<br>$${point.cost_per_million_conversation_tokens.toFixed(2)} per 1M conversation tokens<br>${point.ingest_seconds_per_session.toFixed(1)}s mean ingest per session<br>${point.median_memories} median memories per example<br>n=${series.sample_size}`,
+      );
+      svg.append(group);
+    });
   });
 
   root.replaceChildren(svg);
@@ -539,7 +719,7 @@ function drawReproductionChart(data) {
 
 async function initCharts() {
   try {
-    const response = await fetch("data/results.json");
+    const response = await fetch("data/results.json?v=20260720-synopsis");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     drawStrategyChart(data.redis_strategies);

@@ -918,3 +918,239 @@ figcaption {
     break-inside: avoid;
   }
 }
+
+/* Geometry of Agent Memory article */
+
+.visual-intro,
+.feature-section,
+.systems-section,
+.causal-section,
+.deployment-section {
+  width: min(calc(100% - 2.5rem), var(--content));
+  margin: 0 auto;
+  padding: clamp(3.4rem, 6vw, 5rem) 0;
+}
+
+.visual-intro .section-heading,
+.feature-section .section-heading,
+.systems-section .section-heading,
+.causal-section .section-heading,
+.deployment-section .section-heading {
+  max-width: 900px;
+}
+
+.image-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.feature-section {
+  padding-top: 1rem;
+}
+
+.feature-grid {
+  display: grid;
+  margin-top: 2.5rem;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.feature-grid article {
+  min-height: 270px;
+  padding: 1.4rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.feature-grid article > span {
+  display: block;
+  margin-bottom: 2.2rem;
+  color: var(--red);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.feature-grid h3 {
+  font-size: 1.2rem;
+}
+
+.feature-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.systems-section {
+  width: 100%;
+  padding-right: max(1.5rem, calc((100vw - var(--content)) / 2));
+  padding-left: max(1.5rem, calc((100vw - var(--content)) / 2));
+  background: var(--paper-deep);
+}
+
+.system-strip,
+.comparison-strip {
+  display: grid;
+  margin-top: 2.2rem;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.system-strip {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.system-strip > div,
+.comparison-strip > div {
+  display: flex;
+  padding: 1.4rem;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.system-strip strong,
+.comparison-strip strong {
+  color: var(--red-dark);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.2rem, 4vw, 3.5rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.system-strip span,
+.comparison-strip span {
+  margin-top: 0.65rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.geometry-results {
+  padding-right: max(1.5rem, calc((100vw - var(--content)) / 2));
+  padding-left: max(1.5rem, calc((100vw - var(--content)) / 2));
+}
+
+.comparison-strip {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.result-notes {
+  display: grid;
+  margin-top: 1.25rem;
+  grid-template-columns: repeat(2, 1fr);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.result-notes article {
+  padding: 1.5rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.result-notes h3 {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.result-notes p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.causal-section {
+  width: 100%;
+  padding-right: max(1.5rem, calc((100vw - var(--content)) / 2));
+  padding-left: max(1.5rem, calc((100vw - var(--content)) / 2));
+  background: var(--white);
+}
+
+.replication-note {
+  display: grid;
+  max-width: 900px;
+  margin-top: 1.25rem;
+  padding: 1.4rem;
+  grid-template-columns: 10rem 1fr;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.replication-note strong {
+  color: var(--red-dark);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.replication-note p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.geometry-results .chart-summary,
+.visual-intro .chart-summary,
+.causal-section .chart-summary,
+.deployment-section .chart-summary {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+@media (max-width: 1050px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .feature-grid article {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 700px) {
+  .visual-intro,
+  .feature-section,
+  .deployment-section {
+    width: min(calc(100% - 2rem), var(--content));
+  }
+
+  .feature-grid,
+  .system-strip,
+  .comparison-strip,
+  .result-notes {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid article {
+    min-height: auto;
+  }
+
+  .feature-grid article > span {
+    margin-bottom: 1rem;
+  }
+
+  .replication-note {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .image-figure {
+    overflow-x: auto;
+  }
+
+  .image-figure img {
+    min-width: 680px;
+  }
+}

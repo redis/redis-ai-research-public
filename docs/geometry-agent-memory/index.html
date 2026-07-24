@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A geometric diagnostic for forecasting per-question failures in agent memory systems."
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f5f1e8" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="The Geometry of Agent Memory" />
+    <meta
+      property="og:description"
+      content="Forecasting per-question memory failures from embedding geometry, without an extra generative LLM call."
+    />
+    <meta property="og:image" content="assets/social-card.svg" />
+    <title>The Geometry of Agent Memory</title>
+    <link rel="stylesheet" href="styles.css?v=20260724" />
+  </head>
+  <body>
+    <a class="skip-link" href="#article">Skip to article</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Redis AI Research, article top">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3 29 9.2 16 15.4 3 9.2 16 3Z" />
+          <path d="m3 15.1 13 6.2 13-6.2v5.2L16 26.5 3 20.3v-5.2Z" />
+        </svg>
+        <span>Redis AI Research</span>
+      </a>
+      <nav aria-label="Article sections">
+        <a href="#idea">The idea</a>
+        <a href="#results">Results</a>
+        <a href="#reachability">Reachability</a>
+        <a href="#limits">Limits</a>
+      </nav>
+    </header>
+
+    <main id="article">
+      <article>
+        <header class="hero" id="top">
+          <div class="hero-copy">
+            <p class="eyebrow">Agent memory · Failure forecasting · July 2026</p>
+            <h1>The Geometry of Agent Memory</h1>
+            <p class="dek">
+              We tested whether embedding geometry can flag questions that an agent memory
+              system is likely to answer incorrectly—before the answer is generated and
+              without another generative LLM call.
+            </p>
+            <div class="hero-meta">
+              <span>500 LongMemEval questions</span>
+              <span>3 memory systems</span>
+              <span>25 geometric features</span>
+            </div>
+          </div>
+
+          <aside class="headline-number" aria-label="Main result">
+            <span class="number">0.689</span>
+            <span class="number-label">pooled ROC-AUC</span>
+            <span class="number-note">about 0.63 per individual system</span>
+          </aside>
+        </header>
+
+        <section class="read-this-first" aria-labelledby="read-first-title">
+          <p class="section-kicker">What we measured</p>
+          <h2 id="read-first-title">A diagnostic, not a replacement for evaluation</h2>
+          <div class="qualification-grid">
+            <p>
+              <strong>The forecast.</strong> A classifier uses distances and structure in the
+              joint space of conversation turns, stored memories, and the incoming query to
+              estimate whether an answer will be correct.
+            </p>
+            <p>
+              <strong>The headline number.</strong> ROC-AUC 0.689 pools 1,368 rows from three
+              systems. On one fixed system—the way it would be deployed—the observed ROC-AUC
+              is about 0.63.
+            </p>
+            <p>
+              <strong>The boundary.</strong> This does not replace end-to-end testing, rank
+              memory systems, or provide a better retriever. It is a per-question warning
+              signal with clearly measured limits.
+            </p>
+          </div>
+        </section>
+
+        <section class="visual-intro" aria-labelledby="atlas-title">
+          <div class="section-heading">
+            <p class="section-kicker">The intuition</p>
+            <h2 id="atlas-title">A query can be close to the stored memory—or far from it</h2>
+            <p>
+              Memory systems already represent queries and memories as vectors. Conversation
+              turns can be placed in the same space. Together they form a point cloud that
+              shows how well the stored memory covers the conversation and whether the query
+              can reach relevant information.
+            </p>
+          </div>
+          <figure class="chart-block image-figure">
+            <p class="chart-summary">
+              The top panels are illustrative t-SNE views of one correct and one incorrect
+              example. The lower panel uses original-space cosine distance: memories for the
+              correct example are closer to its query across the ranking.
+            </p>
+            <img
+              src="assets/fig0_manifold.png"
+              width="1038"
+              height="709"
+              decoding="async"
+              alt="Two agent-memory point clouds and their original-space query-to-memory distance curves"
+            />
+            <figcaption>
+              The 2D projection is only a visual aid. Every reported metric uses cosine
+              distance in the original embedding space.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="narrative" id="idea">
+          <div class="section-heading">
+            <p class="section-kicker">The question</p>
+            <h2>Can memory failures be forecast before answering?</h2>
+          </div>
+          <div class="prose">
+            <p>
+              End-to-end benchmark accuracy tells us how often a memory system succeeds in
+              aggregate. It does not tell a deployed agent which individual questions are
+              risky enough to defer, escalate, or answer with a fallback.
+            </p>
+            <p>
+              We computed 25 features from the embedding cloud and trained a logistic
+              regression model to predict per-question correctness. The features require no
+              ground-truth label or generative LLM call at inference time. Training and
+              evaluation still use correctness labels, as any supervised forecaster does.
+            </p>
+          </div>
+        </section>
+
+        <section class="feature-section" aria-labelledby="features-title">
+          <div class="section-heading">
+            <p class="section-kicker">Five feature families</p>
+            <h2 id="features-title">Different views of the same memory state</h2>
+          </div>
+          <div class="feature-grid">
+            <article>
+              <span>01</span>
+              <h3>Conversation structure</h3>
+              <p>How turns cluster by session, including session separation and cluster count.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Memory coverage</h3>
+              <p>How far each turn is from its nearest memory, including worst-case gaps.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Memory dispersion</h3>
+              <p>How many distinct directions the memory set covers and how redundant it is.</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>Query reachability</h3>
+              <p>How close the query is to nearby memories and to the original conversation.</p>
+            </article>
+            <article>
+              <span>05</span>
+              <h3>Session alignment</h3>
+              <p>Whether stored memories preserve or bridge the conversation’s session structure.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="systems-section" aria-labelledby="systems-title">
+          <div class="section-heading">
+            <p class="section-kicker">Systems studied</p>
+            <h2 id="systems-title">Three contrasting memory setups</h2>
+            <p>
+              The analysis uses locked LongMemEval-small runs with GPT-4o answering. Remis
+              retrieves semantic chunks from raw conversations. The source runs named
+              Redis-Instruct and Remis-Instruct add extracted memories with dense or hybrid
+              retrieval; here we call them Redis Agent Memory — Instruct and Redis Agent
+              Memory — Remis + Instruct.
+            </p>
+          </div>
+          <div class="system-strip">
+            <div>
+              <strong>65.8%</strong>
+              <span>Remis<br />semantic-chunk RAG</span>
+            </div>
+            <div>
+              <strong>72.6%</strong>
+              <span>Redis Agent Memory — Instruct<br />dense retrieval</span>
+            </div>
+            <div>
+              <strong>86.0%</strong>
+              <span>Redis Agent Memory — Remis + Instruct<br />hybrid retrieval</span>
+            </div>
+          </div>
+          <p class="metric-note">
+            The joined analysis contains 1,368 rows: 412, 456, and 500 from the
+            three runs. These accuracy figures describe the systems; they are not the target
+            of a new system-ranking claim.
+          </p>
+        </section>
+
+        <section class="results-section geometry-results" id="results" aria-labelledby="results-title">
+          <div class="section-heading">
+            <p class="section-kicker">Forecasting results</p>
+            <h2 id="results-title">Geometry carried a useful but modest signal</h2>
+            <p>
+              We used grouped five-fold cross-validation, keeping all rows for the same
+              question in one fold. This prevents the same conversation-level information
+              from leaking between training and test data.
+            </p>
+          </div>
+          <figure class="chart-block image-figure">
+            <p class="chart-summary">
+              Across all 1,368 rows, the 25 geometric features reached ROC-AUC 0.689
+              [0.659, 0.722]. Performance varied by question type, from 0.552 on knowledge
+              updates to 0.845 on single-session assistant questions.
+            </p>
+            <img
+              src="assets/fig1_auroc_by_qtype.png"
+              width="1035"
+              height="467"
+              loading="lazy"
+              decoding="async"
+              alt="Bar chart of geometric failure-forecasting ROC-AUC overall and by LongMemEval question type"
+            />
+            <figcaption>
+              Error bars are grouped-bootstrap 95% confidence intervals. The gray baseline
+              uses conversation covariates only; it is at chance overall.
+            </figcaption>
+          </figure>
+
+          <div class="comparison-strip" aria-label="Forecasting baseline comparison">
+            <div><strong>0.627</strong><span>retrieval similarity</span></div>
+            <div><strong>0.678</strong><span>question difficulty</span></div>
+            <div><strong>0.689</strong><span>geometry</span></div>
+            <div><strong>0.710</strong><span>question + geometry</span></div>
+          </div>
+
+          <div class="result-notes">
+            <article>
+              <h3>The improvement is real, but not large</h3>
+              <p>
+                Geometry exceeded retrieval similarity by 0.062 AUROC, with a paired 95%
+                confidence interval of [0.028, 0.095]. Question difficulty was already
+                strong at 0.678. Adding geometry to question features raised the result to
+                0.710; the paired increment over question-only was 0.032 [0.014, 0.051].
+              </p>
+            </article>
+            <article>
+              <h3>The answer model’s confidence did not help</h3>
+              <p>
+                Two standard self-confidence measures were below chance: verbalised
+                confidence reached 0.434 and P(True) log-probability reached 0.427. In this
+                setting, embedding geometry was both cheaper to obtain and more informative.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="causal-section" id="reachability" aria-labelledby="reachability-title">
+          <div class="section-heading">
+            <p class="section-kicker">Intervention</p>
+            <h2 id="reachability-title">Query proximity affected answer accuracy</h2>
+            <p>
+              Prediction alone cannot establish whether query-to-memory distance matters to
+              the answer. We tested that directly by replacing the selected context with
+              different subsets from the same stored memories.
+            </p>
+          </div>
+          <figure class="chart-block image-figure">
+            <p class="chart-summary">
+              Selecting the 15 closest memories beat random selection by roughly sevenfold
+              across the two answer models. It matched the system’s own tuned hybrid
+              retriever; it did not beat it.
+            </p>
+            <img
+              src="assets/fig5_causal_ablation.png"
+              width="1039"
+              height="530"
+              loading="lazy"
+              decoding="async"
+              alt="Bar chart comparing farthest, random, all, closest, and native memory selection"
+            />
+            <figcaption>
+              The intervention supports a causal claim only for query reachability. The
+              other four feature families remain correlational. It used the Remis-Instruct
+              store, K=15, and GPT-4o-mini and GPT-4o with matched judges. Absolute
+              accuracies are not directly comparable with the system scores above.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="deployment-section" id="deployment" aria-labelledby="deployment-title">
+          <div class="section-heading">
+            <p class="section-kicker">Selective answering</p>
+            <h2 id="deployment-title">Testing the forecast as a selective-answering signal</h2>
+            <p>
+              Using leakage-free out-of-fold predictions, we retrospectively ranked questions
+              by predicted correctness and deferred the lowest-ranked cases. Coverage is the
+              fraction of questions retained; retained accuracy is accuracy on that subset.
+            </p>
+          </div>
+          <figure class="chart-block image-figure">
+            <p class="chart-summary">
+              Pooled across systems, combining question difficulty and geometry raised
+              retained accuracy from 0.754 at full coverage to 0.905 at 30% coverage. On the
+              strongest single system, question difficulty alone was the better ranking.
+            </p>
+            <img
+              src="assets/fig10_selective_prediction.png"
+              width="1034"
+              height="410"
+              loading="lazy"
+              decoding="async"
+              alt="Risk-coverage curves for question, geometry, and combined failure rankings"
+            />
+            <figcaption>
+              Geometry is most useful here when pooled and combined with question difficulty.
+              It adds little beyond difficulty for the strongest individual system.
+            </figcaption>
+          </figure>
+
+          <div class="replication-note">
+            <strong>Second benchmark.</strong>
+            <p>
+              The reachability family also forecast correctness above chance on LoCoMo:
+              ROC-AUC 0.600 [0.565, 0.639] under leave-one-conversation-out
+              cross-validation. The margin is lower, but the reachability association
+              replicates under an independent evaluation. Because LoCoMo has no separate
+              memory store, only reachability and conversation features apply.
+            </p>
+          </div>
+        </section>
+
+        <section class="limits" id="limits" aria-labelledby="limits-title">
+          <div class="section-heading">
+            <p class="section-kicker">What did not hold</p>
+            <h2 id="limits-title">The limits are part of the result</h2>
+          </div>
+          <ol class="limits-list">
+            <li>
+              <span>01</span>
+              <p>
+                <strong>The pooled score is an upper bound for deployment.</strong> The
+                0.689 result partly reflects differences between systems. Per-system
+                ROC-AUCs were 0.657, 0.597, and 0.635—about 0.63 on average.
+              </p>
+            </li>
+            <li>
+              <span>02</span>
+              <p>
+                <strong>Question difficulty already explains much of the signal.</strong>
+                It reached 0.678 by itself. Geometry adds a statistically supported but
+                small increment, with actionability rather than a large AUROC margin as its
+                main advantage.
+              </p>
+            </li>
+            <li>
+              <span>03</span>
+              <p>
+                <strong>A proposed retrieval-mechanism explanation was refuted.</strong>
+                With the memory store fixed, there was no consistent dense-retrieval
+                advantage. Dense versus hybrid AUROC was 0.635 versus 0.635 with GPT-4o-mini
+                and 0.635 versus 0.612 with GPT-4o.
+              </p>
+            </li>
+            <li>
+              <span>04</span>
+              <p>
+                <strong>Geometric selection did not improve the tuned retriever.</strong>
+                Closest-memory selection and the native hybrid retriever traded places
+                across answer models. The intervention validates reachability, not a new
+                retrieval method.
+              </p>
+            </li>
+            <li>
+              <span>05</span>
+              <p>
+                <strong>The scope is narrow.</strong> The predictive study covers three
+                systems on LongMemEval-small. Reachability replicated on LoCoMo, but
+                multilingual, embodied, and domain-specific memory settings were not tested.
+                For Remis, the stored “memories” are raw conversation chunks, so its coverage
+                features are close to degenerate because memories approximately equal turns.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="conclusion" aria-labelledby="conclusion-title">
+          <p class="section-kicker">Summary</p>
+          <h2 id="conclusion-title">Embedding geometry can provide an early warning</h2>
+          <p>
+            The geometry of turns, memories, and a query forecast per-question correctness
+            better than retrieval similarity and far better than the answer model’s own
+            confidence in this study. Query reachability survived an intervention and
+            replicated on LoCoMo. The practical result is not a replacement for evaluation
+            or retrieval, but a low-cost signal that could support decisions to answer,
+            defer, or fall back. Prospective deployment was not tested.
+          </p>
+        </section>
+
+        <footer class="article-footer">
+          <div>
+            <p class="section-kicker">Method note</p>
+            <p>
+              The primary analysis used 25 features, logistic regression, grouped five-fold
+              cross-validation by question ID, and a 1,000-draw group bootstrap over
+              out-of-fold predictions. The pooled predictive result was checked across three
+              embedders; the intervention used two answer models; and reachability was
+              independently evaluated on LoCoMo.
+            </p>
+          </div>
+          <div>
+            <p class="section-kicker">Draft status</p>
+            <p>
+              Based on unpublished research. Confirm workshop publication and anonymity
+              requirements before distributing publicly.
+            </p>
+          </div>
+          <p class="copyright">Redis AI Research · Research draft · July 2026</p>
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>

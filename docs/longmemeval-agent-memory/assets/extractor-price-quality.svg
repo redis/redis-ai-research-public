@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
+  <title id="title">Memory extraction accuracy and cost</title>
+  <desc id="desc">Question-level LongMemEval accuracy plotted against cost per million conversation tokens for GPT-5 nano, GPT-5 mini, GPT-5, and GPT-4o extraction models.</desc>
+  <rect width="1000" height="520" fill="#fffdf8"/>
+
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <g fill="none" stroke="#ddd5c8" stroke-width="1">
+      <path d="M80 430H950M80 376H950M80 321H950M80 267H950M80 213H950M80 159H950M80 104H950M80 50H950"/>
+      <path d="M127 50V430M194 50V430M278 50V430M392 50V430M505 50V430M572 50V430M656 50V430M770 50V430M883 50V430M950 50V430" stroke-dasharray="3 5" opacity=".72"/>
+    </g>
+
+    <g fill="#68645d" font-size="11">
+      <text x="66" y="434" text-anchor="end">20%</text>
+      <text x="66" y="380" text-anchor="end">30%</text>
+      <text x="66" y="325" text-anchor="end">40%</text>
+      <text x="66" y="271" text-anchor="end">50%</text>
+      <text x="66" y="217" text-anchor="end">60%</text>
+      <text x="66" y="163" text-anchor="end">70%</text>
+      <text x="66" y="108" text-anchor="end">80%</text>
+      <text x="66" y="54" text-anchor="end">90%</text>
+
+      <text x="127" y="452" text-anchor="middle">$0.2</text>
+      <text x="194" y="452" text-anchor="middle">$0.3</text>
+      <text x="278" y="452" text-anchor="middle">$0.5</text>
+      <text x="392" y="452" text-anchor="middle">$1</text>
+      <text x="505" y="452" text-anchor="middle">$2</text>
+      <text x="572" y="452" text-anchor="middle">$3</text>
+      <text x="656" y="452" text-anchor="middle">$5</text>
+      <text x="770" y="452" text-anchor="middle">$10</text>
+      <text x="883" y="452" text-anchor="middle">$20</text>
+      <text x="950" y="452" text-anchor="middle">$30</text>
+    </g>
+
+    <g fill="#68645d" font-size="12" font-weight="600">
+      <text x="515" y="495" text-anchor="middle">Cost per 1M conversation tokens (USD, log scale)</text>
+      <text x="20" y="240" text-anchor="middle" transform="rotate(-90 20 240)">Question-level accuracy</text>
+    </g>
+
+    <g font-size="11" font-weight="700">
+      <g transform="translate(432 20)">
+        <circle cx="0" cy="0" r="5" fill="#42657a"/>
+        <text x="11" y="4" fill="#171716">gpt-5-nano, n=500</text>
+      </g>
+      <g transform="translate(575 20)">
+        <circle cx="0" cy="0" r="5" fill="#d52b1e"/>
+        <text x="11" y="4" fill="#171716">gpt-5-mini, n=100</text>
+      </g>
+      <g transform="translate(711 20)">
+        <circle cx="0" cy="0" r="5" fill="#5d5266"/>
+        <text x="11" y="4" fill="#171716">gpt-5, n=100</text>
+      </g>
+      <g transform="translate(824 20)">
+        <rect x="-5" y="-5" width="10" height="10" fill="#d77b2d"/>
+        <text x="11" y="4" fill="#171716">gpt-4o, n=500</text>
+      </g>
+    </g>
+
+    <polyline points="119,399 188,323 416,219 525,255" fill="none" stroke="#42657a" stroke-width="3"/>
+    <polyline points="302,408 471,148 637,93" fill="none" stroke="#d52b1e" stroke-width="3"/>
+    <polyline points="615,180 782,104 910,115" fill="none" stroke="#5d5266" stroke-width="3"/>
+
+    <g fill="#42657a" stroke="#fffdf8" stroke-width="2">
+      <circle cx="119" cy="399" r="7"/>
+      <circle cx="188" cy="323" r="7"/>
+      <circle cx="416" cy="219" r="7"/>
+      <circle cx="525" cy="255" r="7"/>
+    </g>
+    <g fill="#d52b1e" stroke="#fffdf8" stroke-width="2">
+      <circle cx="302" cy="408" r="7"/>
+      <circle cx="471" cy="148" r="7"/>
+      <circle cx="637" cy="93" r="9"/>
+    </g>
+    <g fill="#5d5266" stroke="#fffdf8" stroke-width="2">
+      <circle cx="615" cy="180" r="7"/>
+      <circle cx="782" cy="104" r="7"/>
+      <circle cx="910" cy="115" r="7"/>
+    </g>
+    <rect x="690" y="140" width="14" height="14" fill="#d77b2d" stroke="#fffdf8" stroke-width="2"/>
+
+    <g font-size="11" font-weight="700">
+      <g fill="#42657a">
+        <text x="126" y="389">minimal, 26%</text>
+        <text x="188" y="309" text-anchor="middle">low, 40%</text>
+        <text x="416" y="204" text-anchor="middle">medium, 59%</text>
+        <text x="535" y="275">high, 52%</text>
+      </g>
+      <g fill="#d52b1e">
+        <text x="302" y="429" text-anchor="middle">minimal, 24%</text>
+        <text x="471" y="134" text-anchor="middle">low, 72%</text>
+        <text x="637" y="75" text-anchor="middle" font-size="12">medium, 82%</text>
+      </g>
+      <g fill="#5d5266">
+        <text x="615" y="202" text-anchor="middle">minimal, 66%</text>
+        <text x="782" y="89" text-anchor="middle">low, 80%</text>
+        <text x="910" y="100" text-anchor="middle">medium, 78%</text>
+      </g>
+      <text x="697" y="171" fill="#d77b2d" text-anchor="middle">gpt-4o, 72%</text>
+    </g>
+  </g>
+</svg>

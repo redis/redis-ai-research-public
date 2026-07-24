@@ -7,106 +7,403 @@
     <meta name="description" content="Public-facing projects, experiments, and reference implementations from the Redis AI Research team." />
     <style>
       :root {
-        --bg: #0b1020;
-        --panel: #121933;
-        --text: #e8ecf3;
-        --muted: #aab4c3;
-        --accent: #ff4438;
-        --accent-2: #5cc8ff;
-        --border: #26304f;
+        --paper: #f5f1e8;
+        --paper-deep: #e9e2d4;
+        --white: #fffdf8;
+        --ink: #171716;
+        --muted: #68645d;
+        --line: #cfc6b8;
+        --red: #d52b1e;
+        --red-dark: #a91f16;
+        --content: 1160px;
       }
-      * { box-sizing: border-box; }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        background: linear-gradient(180deg, #0b1020 0%, #0f1730 100%);
-        color: var(--text);
-        line-height: 1.6;
+        color: var(--ink);
+        background:
+          linear-gradient(rgba(23, 23, 22, 0.028) 1px, transparent 1px),
+          var(--paper);
+        background-size: 100% 8px;
+        font-family:
+          Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 17px;
+        line-height: 1.65;
+        text-rendering: optimizeLegibility;
       }
-      .wrap {
-        max-width: 980px;
+
+      a {
+        color: inherit;
+        text-underline-offset: 0.2em;
+      }
+
+      .site-header {
+        display: flex;
+        width: min(calc(100% - 3rem), var(--content));
         margin: 0 auto;
-        padding: 48px 20px 72px;
+        padding: 1.35rem 0;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
       }
-      h1, h2, h3 { line-height: 1.2; margin: 0 0 12px; }
-      h1 { font-size: 2.5rem; }
-      h2 { font-size: 1.5rem; margin-top: 36px; }
-      p { margin: 0 0 16px; color: var(--muted); }
-      a { color: var(--accent-2); text-decoration: none; }
-      a:hover { text-decoration: underline; }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        text-decoration: none;
+      }
+
+      .brand svg {
+        width: 1.75rem;
+        fill: var(--red);
+      }
+
+      .site-header > a:last-child {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .site-header a:hover,
+      .site-header a:focus-visible {
+        color: var(--red);
+      }
+
+      .wrap {
+        width: min(calc(100% - 3rem), var(--content));
+        margin: 0 auto;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 500;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+
+      h1 {
+        max-width: 800px;
+        font-size: clamp(3rem, 6vw, 5.8rem);
+      }
+
+      h2 {
+        font-size: clamp(2rem, 3.7vw, 3.5rem);
+      }
+
+      h3 {
+        font-size: 1.55rem;
+      }
+
+      p {
+        margin: 0;
+      }
+
       .hero {
-        background: rgba(18, 25, 51, 0.8);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 32px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        display: grid;
+        min-height: 520px;
+        padding: clamp(4rem, 8vw, 7rem) 0;
+        grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.7fr);
+        gap: clamp(2.5rem, 6vw, 6rem);
+        align-items: center;
       }
-      .badge {
+
+      .badge,
+      .section-kicker {
+        display: block;
+        margin-bottom: 1rem;
+        color: var(--red);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .hero-copy > p:not(.badge) {
+        max-width: 720px;
+        margin-top: 1.5rem;
+        color: #35322e;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.15rem, 2vw, 1.5rem);
+      }
+
+      .hero-panel {
+        position: relative;
+        display: flex;
+        min-height: 275px;
+        padding: 2rem;
+        color: var(--white);
+        background: var(--red);
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+
+      .hero-panel::before {
+        position: absolute;
+        inset: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.48);
+        content: "";
+      }
+
+      .hero-panel strong,
+      .hero-panel span {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-panel strong {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 2.25rem;
+        font-weight: 500;
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+      }
+
+      .hero-panel span {
+        margin-top: 0.8rem;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .repository-link {
         display: inline-block;
-        font-size: 0.85rem;
-        color: white;
-        background: var(--accent);
-        padding: 6px 10px;
-        border-radius: 999px;
-        margin-bottom: 14px;
+        margin-top: 1.5rem;
+        color: var(--red-dark);
+        font-family: Inter, ui-sans-serif, sans-serif;
+        font-size: 0.82rem;
+        font-weight: 800;
       }
+
+      .projects {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        padding: clamp(4rem, 8vw, 7rem) max(1.5rem, calc((100vw - var(--content)) / 2));
+        background: var(--white);
+      }
+
+      .section-heading {
+        display: flex;
+        margin-bottom: 2.5rem;
+        align-items: end;
+        justify-content: space-between;
+        gap: 2rem;
+      }
+
+      .section-heading p {
+        max-width: 420px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 18px;
-        margin-top: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
       }
+
       .card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 20px;
+        display: flex;
+        min-height: 280px;
+        padding: 1.8rem;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
       }
-      .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
-      .repo-link {
-        display: inline-block;
-        margin-top: 10px;
-        font-weight: 600;
-      }
-      code {
-        background: rgba(255,255,255,0.08);
-        padding: 2px 6px;
-        border-radius: 6px;
-        color: var(--text);
-      }
-      ul { color: var(--muted); }
-      footer {
-        margin-top: 42px;
-        padding-top: 20px;
-        border-top: 1px solid var(--border);
+
+      .card p {
+        margin-top: 1rem;
         color: var(--muted);
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+      }
+
+      .card-featured {
+        color: var(--white);
+        background: var(--red);
+      }
+
+      .card-featured p {
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      .repo-link {
+        display: inline-flex;
+        margin-top: auto;
+        padding-top: 1.5rem;
+        color: var(--red-dark);
+        align-items: center;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .card-featured .repo-link {
+        color: var(--white);
+      }
+
+      .repo-link:hover,
+      .repo-link:focus-visible {
+        text-decoration: underline;
+      }
+
+      code {
+        padding: 0.1rem 0.3rem;
+        color: var(--ink);
+        background: var(--paper-deep);
+      }
+
+      .coverage {
+        padding: clamp(4rem, 8vw, 7rem) 0;
+      }
+
+      .coverage ul {
+        display: grid;
+        margin: 2.5rem 0 0;
+        padding: 0;
+        grid-template-columns: repeat(5, 1fr);
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+        list-style: none;
+      }
+
+      .coverage li {
+        min-height: 120px;
+        padding: 1.25rem;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.05rem;
+        line-height: 1.25;
+      }
+
+      footer {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        padding: 3.5rem max(1.5rem, calc((100vw - var(--content)) / 2));
+        color: #cbc7bf;
+        background: var(--ink);
+        font-size: 0.85rem;
+      }
+
+      footer p {
+        max-width: 700px;
+      }
+
+      @media (max-width: 900px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-panel {
+          max-width: 430px;
+        }
+
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .coverage ul {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 620px) {
+        body {
+          font-size: 16px;
+        }
+
+        .site-header,
+        .wrap {
+          width: min(calc(100% - 2rem), var(--content));
+        }
+
+        .site-header > a:last-child {
+          display: none;
+        }
+
+        h1 {
+          font-size: clamp(2.7rem, 12vw, 3.9rem);
+        }
+
+        .section-heading {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .grid,
+        .coverage ul {
+          grid-template-columns: 1fr;
+        }
+
+        .card {
+          min-height: 240px;
+        }
       }
     </style>
   </head>
   <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Redis AI Research, home">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3 29 9.2 16 15.4 3 9.2 16 3Z" />
+          <path d="m3 15.1 13 6.2 13-6.2v5.2L16 26.5 3 20.3v-5.2Z" />
+        </svg>
+        <span>Redis AI Research</span>
+      </a>
+      <a href="https://github.com/redis/redis-ai-research-public">View on GitHub</a>
+    </header>
+
     <main class="wrap">
       <section class="hero">
-        <div class="badge">Redis AI Research</div>
-        <h1>Public projects and experiments built on Redis</h1>
-        <p>
-          This monorepo collects open-source work from the Redis AI Research team exploring
-          semantic caching, vector search, retrieval-augmented generation, agentic systems,
-          and evaluation workflows.
-        </p>
-        <p>
-          Repository: <a href="https://github.com/redis/redis-ai-research-public">redis/redis-ai-research-public</a>
-        </p>
+        <div class="hero-copy">
+          <span class="badge">Redis AI Research</span>
+          <h1>Research projects from the Redis AI team</h1>
+          <p>
+            This site collects our public experiments, benchmarks, and reference
+            implementations. We share the code, results, and notes as we go.
+          </p>
+          <a class="repository-link" href="https://github.com/redis/redis-ai-research-public">
+            Browse the repository →
+          </a>
+        </div>
+        <aside class="hero-panel">
+          <strong>Most of this work starts with a question we want to test.</strong>
+          <span>Some projects are exploratory</span>
+        </aside>
       </section>
 
-      <section>
-        <h2>Current projects</h2>
+      <section class="projects">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">Projects</span>
+            <h2>Current work</h2>
+          </div>
+          <p>Some projects answer a research question. Others are practical examples built to test an idea.</p>
+        </div>
         <div class="grid">
-          <article class="card">
+          <article class="card card-featured">
             <h3>LongMemEval agent-memory evaluation</h3>
             <p>
-              A measured look at combining raw conversation retrieval with extracted facts,
-              including interactive results, cost estimates, and explicit comparability limits.
+              We tested several approaches to long-term agent memory on LongMemEval,
+              including a combination of raw conversation retrieval and extracted facts.
             </p>
             <a class="repo-link" href="longmemeval-agent-memory/">Read the research article →</a>
           </article>
@@ -114,7 +411,8 @@
           <article class="card">
             <h3>coding-agents</h3>
             <p>
-              A multi-tenant FastAPI coding-agent service built on the OpenAI Agents SDK sandbox harness.
+              A FastAPI service for running coding agents in isolated workspaces, with
+              authentication, streaming, and parallel tasks.
             </p>
             <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/coding-agents">Open project →</a>
           </article>
@@ -122,7 +420,8 @@
           <article class="card">
             <h3>learning-agents</h3>
             <p>
-              A multi-agent system that turns natural-language questions into executable pandas code with Redis-backed cache and guidance memory.
+              An agent that answers questions about CSV and JSON data by writing and running
+              pandas code. Redis stores cached results and guidance from earlier errors.
             </p>
             <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/learning-agents">Open project →</a>
           </article>
@@ -130,7 +429,8 @@
           <article class="card">
             <h3>memorydb-semantic-search</h3>
             <p>
-              Semantic search over LongMemEval chat sessions on AWS MemoryDB, including benchmarks for multiple backend approaches.
+              A benchmark of semantic search over LongMemEval chat sessions using AWS
+              MemoryDB, S3, and EBS.
             </p>
             <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/memorydb-semantic-search">Open project →</a>
           </article>
@@ -138,7 +438,8 @@
           <article class="card">
             <h3>opencode-spec-optimization</h3>
             <p>
-              An evaluation-driven workflow that iteratively rewrites <code>AGENTS.md</code> until OpenCode runs satisfy target objectives.
+              An experiment that rewrites <code>AGENTS.md</code>, reruns the same OpenCode
+              questions, and keeps changes that improve the measured results.
             </p>
             <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/opencode-spec-optimization">Open project →</a>
           </article>
@@ -146,15 +447,16 @@
           <article class="card">
             <h3>agentic-ai-summit</h3>
             <p>
-              Talk slides and supporting artifacts for the Agentic AI Summit, including Marp source, generated HTML, PDF output, and theme assets.
+              Slides and source files from our Agentic AI Summit talk.
             </p>
             <a class="repo-link" href="https://github.com/redis/redis-ai-research-public/tree/main/agentic-ai-summit/talk-slides">Open project →</a>
           </article>
         </div>
       </section>
 
-      <section>
-        <h2>What this repo covers</h2>
+      <section class="coverage">
+        <span class="section-kicker">Topics</span>
+        <h2>Areas we work on</h2>
         <ul>
           <li>Semantic and vector search</li>
           <li>Caching for LLM applications</li>
@@ -166,8 +468,8 @@
 
       <footer>
         <p>
-          Start with the monorepo README or jump directly into a project folder.
-          For questions or contributions, open an issue in the GitHub repository.
+          Everything here is public on GitHub. If something is unclear, incomplete,
+          or wrong, open an issue.
         </p>
       </footer>
     </main>

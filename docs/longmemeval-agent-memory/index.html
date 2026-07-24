@@ -5,33 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="A measured, reproducible look at Redis agent-memory strategies on the 500-question LongMemEval small split."
+      content="Results from a 500-question evaluation of Redis Agent Memory strategies on the LongMemEval small split."
+    />
+    <meta
+      name="author"
+      content="Iliya Zhechev, Radoslav Ralev, Srijith Rajamohan, Jen Agarwal"
     />
     <meta name="theme-color" content="#f5f1e8" />
     <meta property="og:type" content="article" />
-    <meta property="og:title" content="What we learned benchmarking agent memory on LongMemEval" />
+    <meta property="og:title" content="Benchmarking agent memory on LongMemEval" />
     <meta
       property="og:description"
-      content="Raw evidence and extracted facts were more useful together—but the benchmark and cost comparisons need careful qualification."
+      content="We compared raw conversation retrieval, extracted memories, and a combined approach on LongMemEval."
     />
     <meta property="og:image" content="assets/social-card.svg" />
-    <title>What we learned benchmarking agent memory on LongMemEval</title>
-    <link rel="stylesheet" href="styles.css" />
-    <script src="script.js" defer></script>
+    <title>Benchmarking agent memory on LongMemEval</title>
+    <link rel="stylesheet" href="styles.css?v=20260721-stacked" />
+    <script src="script.js?v=20260721-stacked" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#article">Skip to article</a>
 
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="Redis Applied AI Research, home">
+      <a class="brand" href="#top" aria-label="Redis AI Research, home">
         <svg viewBox="0 0 32 32" aria-hidden="true">
           <path d="M16 3 29 9.2 16 15.4 3 9.2 16 3Z" />
           <path d="m3 15.1 13 6.2 13-6.2v5.2L16 26.5 3 20.3v-5.2Z" />
         </svg>
-        <span>Redis Applied AI Research</span>
+        <span>Redis AI Research</span>
       </a>
       <nav aria-label="Article sections">
         <a href="#results">Results</a>
+        <a href="#extraction">Extraction</a>
         <a href="#method">Method</a>
         <a href="#limits">Limits</a>
       </nav>
@@ -41,12 +46,16 @@
       <article>
         <header class="hero" id="top">
           <div class="hero-copy">
-            <p class="eyebrow">Agent memory · LongMemEval · June 2026</p>
-            <h1>What we learned benchmarking agent memory on LongMemEval</h1>
+            <p class="eyebrow">Agent memory · LongMemEval · June–July 2026</p>
+            <h1>Benchmarking agent memory on LongMemEval</h1>
             <p class="dek">
-              Raw conversation evidence and extracted facts were more useful together than
-              either was alone. On our run, the combined Redis strategy reached
-              <strong>86.1% task-averaged accuracy</strong>—with qualifications that matter.
+              We compared raw conversation retrieval, extracted memories, and a combination
+              of the two. In our 500-question run, the combined Redis Agent Memory strategy reached
+              <strong>86.1% task-averaged accuracy</strong>.
+            </p>
+            <p class="byline">
+              <a href="http://ichko.github.io/" rel="author">Iliya Zhechev</a> · Radoslav Ralev ·
+              <a href="https://srijithr.gitlab.io/" rel="author">Srijith Rajamohan</a> · Jen Agarwal
             </p>
             <div class="hero-meta">
               <span>500-question benchmark</span>
@@ -55,45 +64,44 @@
             </div>
           </div>
 
-          <aside class="headline-number" aria-label="Headline result">
+          <aside class="headline-number" aria-label="Main result">
             <span class="number">86.1<small>%</small></span>
             <span class="number-label">task-averaged accuracy</span>
-            <span class="number-note">85.0% sample-weighted overall · 425/500 correct</span>
+            <span class="number-note">425/500 correct</span>
           </aside>
         </header>
 
         <section class="read-this-first" aria-labelledby="read-first-title">
-          <p class="section-kicker">Before the numbers</p>
-          <h2 id="read-first-title">Notes on the comparison</h2>
+          <p class="section-kicker">About the results</p>
+          <h2 id="read-first-title">How to read the comparisons</h2>
           <div class="qualification-grid">
             <p>
-              <strong>The Redis run.</strong> The headline result covers all 500 questions
+              <strong>The Redis Agent Memory run.</strong> The main result covers all 500 questions
               in the LongMemEval small split, using gpt-4o for answers and judging.
             </p>
             <p>
-              <strong>Other systems.</strong> Some were run through our harness; others are
-              published figures shown for context. Their benchmark split or answer model may
-              differ, and the chart notes those cases.
+              <strong>Other systems.</strong> Some were evaluated by us using our benchmark
+              code; others are published figures shown for context. Their benchmark split or
+              answer model may differ, and the chart notes those cases.
             </p>
             <p>
               <strong>Cost estimates.</strong> Dollar estimates cover measured LLM token
-              usage at list prices. They exclude infrastructure, hosting, and any hidden
-              server-side ingest spend.
+              usage at list prices. They exclude infrastructure, hosting, and server-side
+              ingestion costs that were not available to us.
             </p>
           </div>
         </section>
 
         <section class="narrative" id="method">
           <div class="section-heading">
-            <p class="section-kicker">The problem</p>
-            <h2>Long histories are costly to include in every prompt</h2>
+            <p class="section-kicker">Background</p>
+            <h2>Why use external memory</h2>
           </div>
           <div class="prose">
             <p>
-              Keeping every prior conversation in the prompt becomes expensive and slow as
-              history grows. An external memory system separates that work into two paths:
-              ingest a session once, then retrieve a small amount of relevant context for
-              each question.
+              Including every prior conversation in each prompt becomes slower and more
+              expensive as the history grows. An external memory system stores each session,
+              then retrieves a smaller amount of relevant context for a new question.
             </p>
             <p>
               LongMemEval tests whether that retrieved context is sufficient. Its small
@@ -106,8 +114,8 @@
 
         <section class="strategy-section" aria-labelledby="strategies-title">
           <div class="section-heading">
-            <p class="section-kicker">Three Redis strategies</p>
-            <h2 id="strategies-title">Keep the evidence, curate the facts, or do both</h2>
+            <p class="section-kicker">Redis Agent Memory</p>
+            <h2 id="strategies-title">Three memory strategies</h2>
           </div>
 
           <div class="strategy-grid">
@@ -116,9 +124,9 @@
               <h3>Instruct</h3>
               <p class="strategy-type">LLM-extracted memory</p>
               <p>
-                An extractor sees each session and the current memory store, then creates,
-                updates, or deletes granular facts. It consolidates changes well, but
-                omitted details cannot be recovered later.
+                An extractor reads each session and the current memory store, then creates,
+                updates, or deletes individual facts. This can consolidate changes across
+                sessions, but details omitted during extraction are unavailable later.
               </p>
               <div class="flow" aria-label="Instruct flow">
                 <span>session</span><i>→</i><span>extract facts</span><i>→</i><span>retrieve</span>
@@ -128,11 +136,12 @@
             <article class="strategy-card">
               <span class="strategy-index">02</span>
               <h3>Remis</h3>
-              <p class="strategy-type">Hybrid semantic RAG</p>
+              <p class="strategy-type">Semantic retrieval from raw conversations</p>
               <p>
-                Sessions are split at topic shifts and indexed with dense and BM25 signals.
-                Neighboring chunks expand the retrieved context. Exact details survive,
-                though the answer model sees more noise.
+                We call this strategy Remis. It splits sessions at topic shifts and indexes
+                the resulting chunks with dense and BM25 signals. Neighboring chunks expand
+                the retrieved context. This preserves exact details, but it can also return
+                more irrelevant text.
               </p>
               <div class="flow" aria-label="Remis flow">
                 <span>session</span><i>→</i><span>hybrid index</span><i>→</i><span>raw excerpts</span>
@@ -157,42 +166,51 @@
 
         <section class="results-section" id="results" aria-labelledby="results-title">
           <div class="section-heading">
-            <p class="section-kicker">What we measured</p>
-            <h2 id="results-title">Combining both improved accuracy</h2>
+            <p class="section-kicker">Results</p>
+            <h2 id="results-title">Results for the three Redis Agent Memory strategies</h2>
             <p>
-              The primary metric gives each of the six task types equal weight. This avoids
-              letting the larger categories dominate the result.
+              The primary metric gives each of the six task types equal weight, rather than
+              giving more weight to categories that contain more questions.
             </p>
           </div>
 
           <figure class="chart-block">
             <div class="chart-header">
               <div>
-                <h3>Redis strategy accuracy</h3>
+                <h3>Redis Agent Memory strategy accuracy</h3>
                 <p>Task-averaged accuracy on LongMemEval small (%)</p>
               </div>
               <span class="chart-unit">Higher is better</span>
             </div>
-            <div id="strategy-chart" class="chart" role="img" aria-label="Bar chart comparing Redis strategy accuracy"></div>
+            <p class="chart-summary">
+              The combined strategy had the highest result shown, at 86.1%. The 83.4% Remis
+              value is included for comparison, but we could not match it to a retained raw
+              result file.
+            </p>
+            <div id="strategy-chart" class="chart" role="img" aria-label="Bar chart comparing Redis Agent Memory strategy accuracy"></div>
             <figcaption>
               The combined result is the complete 500-question small-split aggregate using
-              the gpt-4o answer model and official gpt-4o judge. Task-averaged and
-              sample-weighted accuracy are different aggregations.
+              the gpt-4o answer model and official gpt-4o judge.
             </figcaption>
           </figure>
 
           <figure class="chart-block chart-wide">
             <div class="chart-header">
               <div>
-                <h3>Competitive landscape</h3>
+                <h3>Redis Agent Memory and comparison figures</h3>
                 <p>Task-averaged accuracy on LongMemEval small (%)</p>
               </div>
               <div class="legend" aria-label="Chart legend">
-                <span><i class="legend-swatch redis"></i>Redis run</span>
+                <span><i class="legend-swatch redis"></i>Redis Agent Memory</span>
                 <span><i class="legend-swatch reproduced"></i>Third-party, reproduced</span>
                 <span><i class="legend-swatch published"></i>Published only</span>
               </div>
             </div>
+            <p class="chart-summary">
+              This chart places the combined Redis Agent Memory result beside reproduced and
+              published figures. It is context rather than a direct ranking: answer models,
+              benchmark splits, and completion coverage differ across rows.
+            </p>
             <div id="leaderboard-chart" class="chart" role="img" aria-label="Leaderboard bar chart"></div>
             <figcaption>
               Published-only values are contextual, not independently verified here. Model
@@ -205,42 +223,136 @@
         <section class="narrative finding">
           <div class="section-heading">
             <p class="section-kicker">Interpretation</p>
-            <h2>The useful finding is complementarity—not that one retrieval pattern won</h2>
+            <h2>Why the combined strategy may have helped</h2>
           </div>
           <div class="prose">
             <p>
-              Extracted memories help consolidate information spread across sessions and
-              resolve changes over time. Raw chunks preserve quotes, names, dates, and
-              numbers that an extractor may compress away. In the combined setup, the
-              answer model can use either representation in one call.
+              Extracted memories can consolidate information spread across sessions and
+              represent changes over time. Raw chunks preserve quotes, names, dates, and
+              numbers that an extractor may omit. The combined setup gives the answer model
+              access to both forms of context.
             </p>
             <p>
-              The experiment supports that explanation for this benchmark and configuration.
-              It does not show that every application needs two stores, or that the same
-              trade-off will hold for different histories, models, prompts, or latency
-              budgets.
+              This is one explanation for the result, not a causal test. The evaluation does
+              not show that every application needs two stores or that the same trade-off will
+              hold with different histories, models, prompts, or latency requirements.
             </p>
           </div>
+        </section>
+
+        <section class="extraction-study" id="extraction" aria-labelledby="extraction-title">
+          <div class="section-heading">
+            <p class="section-kicker">Extraction model comparison</p>
+            <h2 id="extraction-title">Results from changing the extraction model</h2>
+            <p>
+              Instruct uses an LLM to turn each session into memories. In a separate experiment,
+              we kept the store, answer model, and judge fixed while changing the extraction
+              model and its reasoning effort.
+            </p>
+          </div>
+
+          <div class="study-method" aria-label="Extraction experiment controls">
+            <div>
+              <strong>Fixed</strong>
+              <span>Redis Agent Memory, Instruct strategy</span>
+            </div>
+            <div>
+              <strong>Fixed</strong>
+              <span>gpt-4o answering and judging</span>
+            </div>
+            <div>
+              <strong>Varied</strong>
+              <span>extractor and reasoning effort</span>
+            </div>
+          </div>
+
+          <figure class="chart-block">
+            <div class="chart-header">
+              <div>
+                <h3>Extraction accuracy and normalized cost</h3>
+                <p>Question-level accuracy on LongMemEval small</p>
+              </div>
+              <span class="chart-unit">Upper-left is better</span>
+            </div>
+            <p class="chart-summary">
+              Each line follows one extraction model as reasoning effort changes; farther
+              left is cheaper and higher is more accurate. GPT-5-mini at medium effort had
+              the highest question-level score in these runs, while higher effort did not
+              consistently improve accuracy.
+            </p>
+            <img
+              class="extraction-figure"
+              src="assets/extractor-price-quality.svg"
+              width="1000"
+              height="520"
+              alt="Accuracy versus cost for gpt-5-nano, gpt-5-mini, gpt-5, and gpt-4o as memory extraction models across reasoning-effort settings"
+            />
+            <figcaption>
+              Each connected line is one model family across reasoning-effort settings.
+              Costs include extraction, answering, and embeddings, normalized per million
+              conversation tokens using OpenAI API prices verified in July 2026. The mini
+              and gpt-5 curves use the first 100 examples; nano and gpt-4o use all 500.
+              Each cell is a single run, so small differences should not be over-interpreted.
+            </figcaption>
+          </figure>
+
+          <div class="extraction-findings">
+            <article>
+              <span>82%</span>
+              <p>
+                <strong>gpt-5-mini, medium reasoning.</strong> This run reached 82% on the
+                100-example subset, the highest observed question-level score in this set of
+                runs. Estimated cost was $4.45 per million conversation tokens.
+              </p>
+            </article>
+            <article>
+              <span>$1.62</span>
+              <p>
+                <strong>gpt-5-mini, low reasoning.</strong> This run reached 72.0% on 100
+                examples. The gpt-4o run reached 72.1% on 500 examples at an estimated $6.42
+                per million conversation tokens.
+              </p>
+            </article>
+            <article>
+              <span>Effort</span>
+              <p>
+                <strong>Accuracy did not rise at every higher effort setting.</strong> Nano
+                scored lower at high effort than at medium. GPT-5 changed little between low
+                and medium effort while cost and latency increased.
+              </p>
+            </article>
+          </div>
+
+          <p class="metric-note">
+            The 82% figure uses question-level accuracy. The 86.1% figure at the top is a
+            task-averaged result for the combined Remis + Instruct system. They use different
+            metrics and are not directly comparable.
+          </p>
         </section>
 
         <section class="economics" aria-labelledby="economics-title">
           <div class="section-heading">
             <p class="section-kicker">Cost and latency</p>
-            <h2 id="economics-title">Accuracy is only one part of a production memory system</h2>
+            <h2 id="economics-title">Estimated LLM cost and measured latency</h2>
             <p>
-              We estimated a holistic per-session LLM cost as one ingest plus 5.13 queries,
-              the average number of user turns per session in this benchmark split.
+              For the cost comparison, one session includes ingestion plus 5.13 queries,
+              the average number of user turns in this benchmark split.
             </p>
           </div>
 
           <figure class="chart-block">
             <div class="chart-header">
               <div>
-                <h3>Measured accuracy vs. estimated LLM cost</h3>
+                <h3>Task-averaged accuracy and estimated LLM cost</h3>
                 <p>Total memory cost per session (USD, log scale)</p>
               </div>
               <span class="chart-unit">Upper-left is better</span>
             </div>
+            <p class="chart-summary">
+              Each point combines task-averaged accuracy with estimated LLM spend per session.
+              The combined Redis Agent Memory run reached 86.1% at an estimated $0.0703 per
+              session. Hidden server-side costs limit direct comparisons across systems.
+            </p>
             <div id="cost-chart" class="chart cost-chart" role="img" aria-label="Scatter plot of accuracy and estimated cost"></div>
             <figcaption>
               Cost = ingest $/session + 5.13 × query $/question. Prices use measured token
@@ -257,7 +369,7 @@
             </div>
             <div>
               <span class="metric-value">≈5.2×</span>
-              <span class="metric-label">lower than reproduced<br />Mastra OM cost</span>
+              <span class="metric-label">estimated LLM cost ratio<br />Mastra OM / combined run</span>
             </div>
             <div>
               <span class="metric-value">1.78s</span>
@@ -268,13 +380,12 @@
 
         <section class="reproduction" aria-labelledby="reproduction-title">
           <div class="section-heading">
-            <p class="section-kicker">Why rerun benchmarks</p>
-            <h2 id="reproduction-title">Published figures did not reliably predict our runs</h2>
+            <p class="section-kicker">Reproduced results</p>
+            <h2 id="reproduction-title">Our measurements did not always match published figures</h2>
             <p>
-              Reproduced scores moved in both directions. That does not establish that a
-              published number is wrong: products, prompts, defaults, and answer models
-              differ. It does show why results should be measured under the conditions that
-              matter to your application.
+              The differences went in both directions. They do not by themselves show that
+              a published result is wrong: products, prompts, defaults, and answer models can
+              differ. They show how much the evaluation setup can affect the measured result.
             </p>
           </div>
 
@@ -289,6 +400,11 @@
                 <span><i class="legend-swatch reproduced"></i>Measured here</span>
               </div>
             </div>
+            <p class="chart-summary">
+              Each pair compares a published figure with what we measured. The differences
+              went in both directions, showing that changes in the evaluation setup can
+              change the result.
+            </p>
             <div id="reproduction-chart" class="chart" role="img" aria-label="Paired comparison of published and measured accuracy"></div>
             <figcaption>
               Google’s ≈70% figure comes from the research paper behind the service, not a
@@ -332,13 +448,13 @@
         </section>
 
         <section class="conclusion" aria-labelledby="conclusion-title">
-          <p class="section-kicker">Bottom line</p>
-          <h2 id="conclusion-title">Use the result as a design clue, then test your own workload</h2>
+          <p class="section-kicker">Summary</p>
+          <h2 id="conclusion-title">Raw excerpts and extracted memories worked better together in this run</h2>
           <p>
-            On this evaluation, preserving raw evidence alongside curated facts improved
-            task-averaged accuracy and produced a favorable measured cost/accuracy trade-off.
-            The result is strong enough to motivate the architecture, not broad enough to
-            settle agent memory.
+            The combined strategy had the highest task-averaged accuracy of the three Redis
+            Agent Memory approaches we tested. The extraction-model runs also varied substantially in
+            accuracy, cost, and latency. Both results are specific to these benchmark settings
+            and should be tested again on the workload where the memory system will be used.
           </p>
         </section>
 
@@ -346,8 +462,8 @@
           <div>
             <p class="section-kicker">Method note</p>
             <p>
-              For each completed example, the harness reset the store, ingested the haystack
-              sessions, queried the test question, and sent the predicted and reference
+              For each example, the evaluation code reset the store, ingested the conversation
+              history, queried the test question, and sent the predicted and reference
               answers to the official gpt-4o binary judge. Results shown here were reconciled
               against the run metadata, judgments, and cost script.
             </p>
@@ -356,7 +472,7 @@
             <a href="data/results.json">View chart data</a>
             <a href="https://arxiv.org/abs/2410.10813" rel="noreferrer">LongMemEval paper</a>
           </div>
-          <p class="copyright">Redis Applied AI Research · Evaluation summary · June 2026</p>
+          <p class="copyright">Redis AI Research · Evaluation summary · June–July 2026</p>
         </footer>
       </article>
     </main>

@@ -13,7 +13,7 @@
   },
   "redis_strategies": [
     {
-      "name": "Redis Instruct",
+      "name": "Instruct",
       "task_averaged_accuracy": 72.3,
       "kind": "redis",
       "note": "LLM-extracted one-fact-per-row memories."
@@ -22,7 +22,7 @@
       "name": "Remis",
       "task_averaged_accuracy": 83.4,
       "kind": "redis",
-      "note": "Figure from the evaluation write-up. A matching raw run was not identified in the retained artifacts."
+      "note": "Remis retrieves semantically relevant chunks from raw conversations. We recorded 83.4% for this configuration, but could not find a retained raw result file that reproduces it."
     },
     {
       "name": "Remis + Instruct",
@@ -31,7 +31,7 @@
       "correct": 425,
       "total": 500,
       "kind": "redis",
-      "note": "Complete official small-split aggregate: 86.14% task-averaged and 85.0% sample-weighted. Remis top_k=5, context_window=1; Instruct search_limit=40."
+      "note": "Complete official small-split aggregate: 86.14% task-averaged, with 425/500 answers judged correct. Remis top_k=5, context_window=1; Instruct search_limit=40."
     }
   ],
   "leaderboard": [
@@ -50,11 +50,11 @@
       "note": "Published figure; not reproduced in this evaluation."
     },
     {
-      "name": "Remis + Instruct",
+      "name": "Redis Agent Memory (combined)",
       "accuracy": 86.14,
       "kind": "redis",
       "model": "gpt-4o",
-      "note": "Complete 500-question small-split aggregate: 86.14% task-averaged and 85.0% sample-weighted (425/500)."
+      "note": "Complete 500-question small-split aggregate: 86.14% task-averaged, with 425/500 answers judged correct."
     },
     {
       "name": "Oracle Agent Memory",
@@ -71,11 +71,11 @@
       "note": "Reproduced score matched the published figure."
     },
     {
-      "name": "Remis",
+      "name": "Redis Agent Memory (Remis)",
       "accuracy": 83.4,
       "kind": "redis",
       "model": "gpt-4o",
-      "note": "Redis hybrid semantic RAG figure from the write-up; a matching retained raw run was not identified."
+      "note": "Remis retrieves semantically relevant chunks from raw conversations. We recorded 83.4% for this configuration, but could not find a retained raw result file that reproduces it."
     },
     {
       "name": "Supermemory",
@@ -99,11 +99,11 @@
       "note": "Available raw backing run used the oracle split, not small; all three memory strategies enabled, top_k=25."
     },
     {
-      "name": "Redis Instruct",
+      "name": "Redis Agent Memory (Instruct)",
       "accuracy": 72.3,
       "kind": "redis",
       "model": "gpt-4o",
-      "note": "LLM-extracted Redis strategy."
+      "note": "LLM-extracted Redis Agent Memory strategy."
     },
     {
       "name": "langmem",
@@ -120,18 +120,18 @@
       "note": "Published figure; not reproduced in this evaluation."
     },
     {
-      "name": "Redis AMS",
+      "name": "Redis Agent Memory (AMS)",
       "accuracy": 64.0,
       "kind": "redis",
       "model": "gpt-4o",
       "note": "Server-side ingest cost was not captured."
     },
     {
-      "name": "RAG-mem",
+      "name": "Redis Agent Memory (RAG)",
       "accuracy": 61.5,
       "kind": "redis",
       "model": "gpt-4o",
-      "note": "Fixed-chunk Redis RAG baseline, top_k=20; matching small-split run contains 412/500 completed questions."
+      "note": "Fixed-chunk Redis Agent Memory RAG baseline, top_k=20; matching small-split run contains 412/500 completed questions."
     },
     {
       "name": "Mem0",
@@ -150,7 +150,7 @@
   ],
   "cost_accuracy": [
     {
-      "name": "Remis + Instruct",
+      "name": "Redis Agent Memory (combined)",
       "accuracy": 86.14,
       "cost_usd": 0.0703,
       "kind": "redis",
@@ -158,29 +158,29 @@
       "note": "Accuracy is the complete 500-question aggregate; cost is the evaluation's published token-spend estimate."
     },
     {
-      "name": "Remis",
+      "name": "Redis Agent Memory (Remis)",
       "accuracy": 83.4,
       "cost_usd": 0.1066,
       "kind": "redis",
       "lower_bound": false,
-      "note": "Accuracy figure is from the write-up; matching raw run was not identified."
+      "note": "The 83.4% accuracy and $0.1066 cost values come from the evaluation records; we could not find a retained raw result file with matching settings and result."
     },
     {
-      "name": "Redis Instruct",
+      "name": "Redis Agent Memory (Instruct)",
       "accuracy": 72.3,
       "cost_usd": 0.0206,
       "kind": "redis",
       "lower_bound": false
     },
     {
-      "name": "Redis AMS",
+      "name": "Redis Agent Memory (AMS)",
       "accuracy": 64.0,
       "cost_usd": 0.0103,
       "kind": "redis",
       "lower_bound": true
     },
     {
-      "name": "RAG-mem",
+      "name": "Redis Agent Memory (RAG)",
       "accuracy": 61.5,
       "cost_usd": 0.1195,
       "kind": "redis",
@@ -224,6 +224,130 @@
       "lower_bound": true
     }
   ],
+  "extraction_evaluation": {
+    "accuracy_metric": "question-level accuracy",
+    "answer_model": "gpt-4o",
+    "judge_model": "gpt-4o",
+    "pricing_basis": "OpenAI standard API rates verified July 2026; includes extraction, answering, and embedding token costs.",
+    "series": [
+      {
+        "name": "gpt-5-nano",
+        "sample_size": 500,
+        "color": "#2a78d6",
+        "points": [
+          {
+            "effort": "minimal",
+            "accuracy": 25.7,
+            "task_averaged_accuracy": 27.1,
+            "cost_per_million_conversation_tokens": 0.19,
+            "ingest_seconds_per_session": 2.9,
+            "median_memories": 35
+          },
+          {
+            "effort": "low",
+            "accuracy": 39.7,
+            "task_averaged_accuracy": 39.7,
+            "cost_per_million_conversation_tokens": 0.29,
+            "ingest_seconds_per_session": 7.6,
+            "median_memories": 388
+          },
+          {
+            "effort": "medium",
+            "accuracy": 58.9,
+            "task_averaged_accuracy": 59.1,
+            "cost_per_million_conversation_tokens": 1.16,
+            "ingest_seconds_per_session": 37.4,
+            "median_memories": 1308
+          },
+          {
+            "effort": "high",
+            "accuracy": 52.3,
+            "task_averaged_accuracy": 51.9,
+            "cost_per_million_conversation_tokens": 2.26,
+            "ingest_seconds_per_session": 75.0,
+            "median_memories": 1267
+          }
+        ]
+      },
+      {
+        "name": "gpt-5-mini",
+        "sample_size": 100,
+        "color": "#1baf7a",
+        "points": [
+          {
+            "effort": "minimal",
+            "accuracy": 24.0,
+            "task_averaged_accuracy": 23.9,
+            "cost_per_million_conversation_tokens": 0.58,
+            "ingest_seconds_per_session": 2.0,
+            "median_memories": 47
+          },
+          {
+            "effort": "low",
+            "accuracy": 72.0,
+            "task_averaged_accuracy": 68.3,
+            "cost_per_million_conversation_tokens": 1.62,
+            "ingest_seconds_per_session": 15.1,
+            "median_memories": 615
+          },
+          {
+            "effort": "medium",
+            "accuracy": 82.0,
+            "task_averaged_accuracy": 78.8,
+            "cost_per_million_conversation_tokens": 4.45,
+            "ingest_seconds_per_session": 49.7,
+            "median_memories": 1404
+          }
+        ]
+      },
+      {
+        "name": "gpt-5",
+        "sample_size": 100,
+        "color": "#4a3aa7",
+        "points": [
+          {
+            "effort": "minimal",
+            "accuracy": 66.0,
+            "task_averaged_accuracy": 65.8,
+            "cost_per_million_conversation_tokens": 3.90,
+            "ingest_seconds_per_session": 4.8,
+            "median_memories": 241
+          },
+          {
+            "effort": "low",
+            "accuracy": 80.0,
+            "task_averaged_accuracy": 75.9,
+            "cost_per_million_conversation_tokens": 10.75,
+            "ingest_seconds_per_session": 26.2,
+            "median_memories": 714
+          },
+          {
+            "effort": "medium",
+            "accuracy": 78.0,
+            "task_averaged_accuracy": 79.6,
+            "cost_per_million_conversation_tokens": 23.54,
+            "ingest_seconds_per_session": 56.6,
+            "median_memories": 954
+          }
+        ]
+      },
+      {
+        "name": "gpt-4o",
+        "sample_size": 500,
+        "color": "#eb6834",
+        "points": [
+          {
+            "effort": "non-reasoning",
+            "accuracy": 72.1,
+            "task_averaged_accuracy": 71.3,
+            "cost_per_million_conversation_tokens": 6.42,
+            "ingest_seconds_per_session": 5.4,
+            "median_memories": 412
+          }
+        ]
+      }
+    ]
+  },
   "published_vs_measured": [
     {
       "name": "Google Vertex Memory Bank",
