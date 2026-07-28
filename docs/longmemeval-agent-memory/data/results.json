@@ -27,33 +27,31 @@
     {
       "name": "Remis + Instruct",
       "task_averaged_accuracy": 86.14,
-      "sample_weighted_accuracy": 85.0,
-      "correct": 425,
-      "total": 500,
       "kind": "redis",
       "note": "Complete official small-split aggregate: 86.14% task-averaged, with 425/500 answers judged correct. Remis top_k=5, context_window=1; Instruct search_limit=40."
     }
   ],
   "leaderboard": [
     {
-      "name": "OMEGA",
+      "name": "OMEGA*",
       "accuracy": 95.4,
       "kind": "published",
       "model": "GPT-4.1",
-      "note": "Published by the system author; not reproduced in this evaluation."
+      "note": "Different setup: GPT-4.1 generation and grading with benchmark-selected prompts; not directly comparable."
     },
     {
-      "name": "PwC Chronos",
-      "accuracy": 92.6,
+      "name": "PwC Chronos*",
+      "accuracy": 92.07,
       "kind": "published",
       "model": "gpt-4o",
-      "note": "Published figure; not reproduced in this evaluation."
+      "note": "Different setup: query guidance, reranking, and iterative retrieval; not directly comparable."
     },
     {
-      "name": "Redis Agent Memory (combined)",
+      "name": "Remis + Instruct",
       "accuracy": 86.14,
       "kind": "redis",
       "model": "gpt-4o",
+      "flag": "our 500-question run",
       "note": "Complete 500-question small-split aggregate: 86.14% task-averaged, with 425/500 answers judged correct."
     },
     {
@@ -71,7 +69,7 @@
       "note": "Reproduced score matched the published figure."
     },
     {
-      "name": "Redis Agent Memory (Remis)",
+      "name": "Remis",
       "accuracy": 83.4,
       "kind": "redis",
       "model": "gpt-4o",
@@ -99,7 +97,7 @@
       "note": "Available raw backing run used the oracle split, not small; all three memory strategies enabled, top_k=25."
     },
     {
-      "name": "Redis Agent Memory (Instruct)",
+      "name": "Instruct",
       "accuracy": 72.3,
       "kind": "redis",
       "model": "gpt-4o",
@@ -120,20 +118,6 @@
       "note": "Published figure; not reproduced in this evaluation."
     },
     {
-      "name": "Redis Agent Memory (AMS)",
-      "accuracy": 64.0,
-      "kind": "redis",
-      "model": "gpt-4o",
-      "note": "Server-side ingest cost was not captured."
-    },
-    {
-      "name": "Redis Agent Memory (RAG)",
-      "accuracy": 61.5,
-      "kind": "redis",
-      "model": "gpt-4o",
-      "note": "Fixed-chunk Redis Agent Memory RAG baseline, top_k=20; matching small-split run contains 412/500 completed questions."
-    },
-    {
       "name": "Mem0",
       "accuracy": 49.0,
       "kind": "published",
@@ -150,7 +134,7 @@
   ],
   "cost_accuracy": [
     {
-      "name": "Redis Agent Memory (combined)",
+      "name": "Remis + Instruct",
       "accuracy": 86.14,
       "cost_usd": 0.0703,
       "kind": "redis",
@@ -158,7 +142,7 @@
       "note": "Accuracy is the complete 500-question aggregate; cost is the evaluation's published token-spend estimate."
     },
     {
-      "name": "Redis Agent Memory (Remis)",
+      "name": "Remis",
       "accuracy": 83.4,
       "cost_usd": 0.1066,
       "kind": "redis",
@@ -166,26 +150,11 @@
       "note": "The 83.4% accuracy and $0.1066 cost values come from the evaluation records; we could not find a retained raw result file with matching settings and result."
     },
     {
-      "name": "Redis Agent Memory (Instruct)",
+      "name": "Instruct",
       "accuracy": 72.3,
       "cost_usd": 0.0206,
       "kind": "redis",
       "lower_bound": false
-    },
-    {
-      "name": "Redis Agent Memory (AMS)",
-      "accuracy": 64.0,
-      "cost_usd": 0.0103,
-      "kind": "redis",
-      "lower_bound": true
-    },
-    {
-      "name": "Redis Agent Memory (RAG)",
-      "accuracy": 61.5,
-      "cost_usd": 0.1195,
-      "kind": "redis",
-      "lower_bound": false,
-      "note": "Matching accuracy run completed 412/500 questions."
     },
     {
       "name": "Mastra OM",

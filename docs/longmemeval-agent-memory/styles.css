@@ -116,11 +116,11 @@ article {
 .hero {
   display: grid;
   width: min(calc(100% - 2.5rem), var(--content));
-  min-height: 460px;
+  min-height: 400px;
   margin: 0 auto;
-  padding: clamp(2.75rem, 5vw, 4.5rem) 0 3rem;
+  padding: clamp(2.25rem, 4vw, 3.5rem) 0 2.5rem;
   grid-template-columns: minmax(0, 1.65fr) minmax(270px, 0.75fr);
-  gap: clamp(2rem, 4vw, 3.75rem);
+  gap: clamp(1.75rem, 3.5vw, 3rem);
   align-items: center;
 }
 
@@ -152,26 +152,26 @@ h3 {
 
 h1 {
   max-width: 720px;
-  margin-bottom: 1.1rem;
-  font-size: clamp(2.8rem, 5.2vw, 4.9rem);
+  margin-bottom: 0.9rem;
+  font-size: clamp(2.7rem, 4.8vw, 4.3rem);
 }
 
 h2 {
-  margin-bottom: 0.9rem;
-  font-size: clamp(1.85rem, 3.2vw, 3.1rem);
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.75rem, 2.8vw, 2.7rem);
 }
 
 h3 {
-  margin-bottom: 0.65rem;
-  font-size: 1.45rem;
+  margin-bottom: 0.55rem;
+  font-size: 1.32rem;
 }
 
 .dek {
   max-width: 760px;
-  margin-bottom: 1.35rem;
+  margin-bottom: 1.15rem;
   color: #35322e;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.18rem, 2vw, 1.55rem);
+  font-size: clamp(1.12rem, 1.75vw, 1.38rem);
   line-height: 1.45;
 }
 
@@ -207,8 +207,8 @@ h3 {
 .headline-number {
   position: relative;
   display: flex;
-  min-height: 240px;
-  padding: 1.7rem;
+  min-height: 210px;
+  padding: 1.5rem;
   color: var(--white);
   background: var(--red);
   flex-direction: column;
@@ -242,7 +242,7 @@ h3 {
   position: relative;
   z-index: 1;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3.8rem, 7vw, 5.8rem);
+  font-size: clamp(3.5rem, 6.2vw, 5rem);
   letter-spacing: -0.075em;
   line-height: 0.86;
 }
@@ -259,7 +259,7 @@ h3 {
 }
 
 .number-label {
-  margin-top: 1.15rem;
+  margin-top: 1rem;
   font-weight: 800;
 }
 
@@ -270,7 +270,7 @@ h3 {
 }
 
 .read-this-first {
-  padding: 2.75rem max(1.5rem, calc((100vw - var(--content)) / 2));
+  padding: 2.2rem max(1.5rem, calc((100vw - var(--content)) / 2));
   color: var(--white);
   background: var(--ink);
 }
@@ -282,9 +282,9 @@ h3 {
 
 .qualification-grid {
   display: grid;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.75rem;
+  gap: 1.4rem;
 }
 
 .qualification-grid p {
@@ -308,7 +308,7 @@ h3 {
 .conclusion {
   width: min(calc(100% - 2.5rem), var(--content));
   margin: 0 auto;
-  padding: clamp(3.4rem, 6vw, 5rem) 0;
+  padding: clamp(2.7rem, 4.5vw, 4rem) 0;
 }
 
 .narrative {
@@ -322,23 +322,23 @@ h3 {
 .section-heading > p:last-child {
   max-width: var(--reading);
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 .prose {
   max-width: var(--reading);
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   padding-top: 0;
   color: #34312d;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.13rem;
+  font-size: 1.08rem;
 }
 
 .prose p:first-child::first-letter {
   float: left;
   margin: 0.04em 0.12em 0 0;
   color: var(--red);
-  font-size: 4.15rem;
+  font-size: 3.7rem;
   line-height: 0.8;
 }
 
@@ -348,7 +348,7 @@ h3 {
 
 .strategy-grid {
   display: grid;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -356,8 +356,8 @@ h3 {
 
 .strategy-card {
   display: flex;
-  min-height: 350px;
-  padding: 1.85rem;
+  min-height: 310px;
+  padding: 1.5rem;
   flex-direction: column;
   border-left: 1px solid var(--line);
 }
@@ -366,22 +366,22 @@ h3 {
   border-right: 1px solid var(--line);
 }
 
-.strategy-card-combined {
+.strategy-card-paired {
   color: var(--white);
   background: var(--red);
   border-color: var(--red);
 }
 
 .strategy-index {
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.75rem;
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.1em;
 }
 
-.strategy-card-combined .strategy-index,
-.strategy-card-combined .strategy-type {
+.strategy-card-paired .strategy-index,
+.strategy-card-paired .strategy-type {
   color: rgba(255, 255, 255, 0.76);
 }
 
@@ -415,7 +415,7 @@ h3 {
   font-style: normal;
 }
 
-.strategy-card-combined .flow i {
+.strategy-card-paired .flow i {
   color: var(--white);
 }
 
@@ -427,8 +427,9 @@ h3 {
 }
 
 .chart-block {
-  margin: 2.75rem 0 0;
-  padding: clamp(1.2rem, 2.5vw, 2rem);
+  width: min(100%, 1060px);
+  margin: 2rem auto 0;
+  padding: clamp(1.1rem, 2vw, 1.6rem);
   border: 1px solid var(--line);
   background: var(--white);
 }
@@ -477,7 +478,7 @@ h3 {
 }
 
 .chart {
-  min-height: 360px;
+  min-height: 300px;
 }
 
 .chart svg {
@@ -502,6 +503,13 @@ figcaption {
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.55;
+}
+
+.comparison-footnote {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
 }
 
 .legend {
@@ -543,7 +551,7 @@ figcaption {
 
 .extraction-study {
   width: 100%;
-  padding: clamp(3.4rem, 6vw, 5rem) max(1.5rem, calc((100vw - var(--content)) / 2));
+  padding: clamp(2.7rem, 4.5vw, 4rem) max(1.5rem, calc((100vw - var(--content)) / 2));
   background: var(--paper-deep);
 }
 
@@ -553,7 +561,7 @@ figcaption {
 
 .study-method {
   display: grid;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
@@ -561,8 +569,8 @@ figcaption {
 
 .study-method > div {
   display: flex;
-  min-height: 94px;
-  padding: 1.2rem 1.35rem;
+  min-height: 82px;
+  padding: 1rem 1.15rem;
   flex-direction: column;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -601,17 +609,17 @@ figcaption {
 }
 
 .extraction-findings article {
-  padding: 1.35rem;
+  padding: 1.15rem;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
 .extraction-findings article > span {
   display: block;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
   color: var(--red-dark);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 2.35rem;
+  font-size: 2.05rem;
   letter-spacing: -0.05em;
   line-height: 1;
 }
@@ -645,40 +653,7 @@ figcaption {
 }
 
 .cost-chart {
-  min-height: 500px;
-}
-
-.metric-strip {
-  display: grid;
-  margin-top: 1rem;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
-}
-
-.metric-strip > div {
-  display: flex;
-  padding: 1.5rem;
-  flex-direction: column;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.metric-value {
-  color: var(--red-dark);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.4rem, 5vw, 4.6rem);
-  letter-spacing: -0.06em;
-  line-height: 1;
-}
-
-.metric-label {
-  margin-top: 0.75rem;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.4;
-  text-transform: uppercase;
+  min-height: 430px;
 }
 
 .reproduction {
@@ -689,7 +664,7 @@ figcaption {
 }
 
 .limits-list {
-  margin: 2.5rem 0 0;
+  margin: 1.8rem 0 0;
   padding: 0;
   border-top: 1px solid var(--line);
   list-style: none;
@@ -730,18 +705,18 @@ figcaption {
 }
 
 .conclusion > p:last-child {
-  margin: 1.25rem 0 0;
+  margin: 1rem 0 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 .article-footer {
   display: grid;
-  padding: 3.5rem max(1.5rem, calc((100vw - var(--content)) / 2)) 2rem;
+  padding: 2.75rem max(1.5rem, calc((100vw - var(--content)) / 2)) 1.75rem;
   color: #cbc7bf;
   background: var(--ink);
   grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.6fr);
-  gap: 4rem;
+  gap: 3rem;
   font-size: 0.85rem;
 }
 
@@ -794,7 +769,7 @@ figcaption {
   }
 
   .hero {
-    padding-top: 3rem;
+    padding-top: 2.5rem;
   }
 
   .headline-number {
@@ -815,11 +790,11 @@ figcaption {
   }
 
   .strategy-index {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .flow {
-    margin-top: 2.5rem;
+    margin-top: 2rem;
   }
 
   .chart {
@@ -858,7 +833,7 @@ figcaption {
   }
 
   h1 {
-    font-size: clamp(2.7rem, 12vw, 3.8rem);
+    font-size: clamp(2.55rem, 11vw, 3.4rem);
   }
 
   .qualification-grid {
@@ -868,10 +843,6 @@ figcaption {
   .chart-header {
     flex-direction: column;
     gap: 0.75rem;
-  }
-
-  .metric-strip {
-    grid-template-columns: 1fr;
   }
 
   .limits-list li {

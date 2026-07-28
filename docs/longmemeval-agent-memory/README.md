@@ -41,6 +41,13 @@ Key evidence used:
 - `experiment_results/20260409-0718-remis-instruct-full-modelgpt-4o-extractionmodelgpt-4o-existinglimit20-searchlimit40-hybridtrue-topk15-contextwindow0-reranktopk0/official_metrics.json` — official per-task aggregation for the 85.7% configuration
 - `blog_handoff_extraction_eval.md` — extraction-model study methodology, results, and publishing caveats
 - `make_extraction_figure.py` — source data and plotting logic for the extraction price/quality figure
+- `https://arxiv.org/abs/2607.16848` — independent scientific-memory evaluation
+  cited for its retrieval-budget and sparse–dense retrieval findings
+- `https://omegamax.co/blog/number-one-on-longmemeval` and
+  `https://github.com/omega-memory/omega-memory` — OMEGA’s published claim,
+  implementation, and evaluation code
+- `https://arxiv.org/abs/2603.16862` — PwC Chronos architecture, settings, and
+  category-level results
 
 The publishable chart dataset is in `data/results.json`.
 
@@ -50,6 +57,14 @@ The publishable chart dataset is in `data/results.json`.
   records 86.14% task-averaged accuracy, with 425/500 answers judged correct.
 - **Published-only and reproduced results are visually distinct.** Published
   values are context, not independently verified evidence.
+- **Higher published figures remain visible with direct qualifications.**
+  OMEGA’s 95.4% is a self-published, benchmark-tuned GPT-4.1 run without a
+  retained public output artifact that we could locate. Chronos uses a broader
+  agentic query path whose cost and latency are not reported.
+- **Chronos is converted to the chart’s metric.** Its paper reports 92.6%
+  sample-weighted overall accuracy. The chart shows 92.07%, calculated as the
+  mean of the six published category accuracies, so it is comparable at the
+  metric level with the other task-averaged rows.
 - **Oracle is explicitly qualified.** Its reproduced 86.0% run used
   `gpt-5.5 xhigh`, not the common `gpt-4o` answer backbone.
 - **Cost is described as an estimate of visible LLM spend**, not total cost of
@@ -68,6 +83,14 @@ The publishable chart dataset is in `data/results.json`.
 - **LongMemEval-V2 results are intentionally excluded.** The July trajectory
   runs use a different dataset, adapter, judge, and metric schema; mixing them
   into the original chat-session LongMemEval story would be misleading.
+- **The scientific-memory preprint provides converging design evidence.** Its
+  findings on sparse–dense retrieval, raw-text preservation, and retrieval-budget
+  control support core choices in our approach. The article also states that its
+  task is scientific-paper retrieval rather than conversational memory.
+- **The combined-strategy interpretation is budget-qualified.** The evaluation
+  did not equalize retrieved-token budgets across strategies, so it cannot
+  separate representational complementarity from the benefit of additional
+  retrieved evidence.
 - **The extraction study keeps its metric distinct.** Its chart reports
   question-level accuracy, while the article's main result reports task-averaged
   accuracy. The mixed sample sizes (`n=100` for mini and gpt-5; `n=500` for

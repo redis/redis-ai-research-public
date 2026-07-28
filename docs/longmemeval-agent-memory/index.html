@@ -16,18 +16,18 @@
     <meta property="og:title" content="Benchmarking agent memory on LongMemEval" />
     <meta
       property="og:description"
-      content="We compared raw conversation retrieval, extracted memories, and a combined approach on LongMemEval."
+      content="We compared Instruct, Remis, and Remis + Instruct on LongMemEval."
     />
     <meta property="og:image" content="assets/social-card.svg" />
     <title>Benchmarking agent memory on LongMemEval</title>
-    <link rel="stylesheet" href="styles.css?v=20260721-stacked" />
-    <script src="script.js?v=20260721-stacked" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260728-compact-footnote" />
+    <script src="script.js?v=20260728-compact-footnote" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#article">Skip to article</a>
 
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="Redis AI Research, home">
+      <a class="brand" href="../" aria-label="Redis AI Research, home">
         <svg viewBox="0 0 32 32" aria-hidden="true">
           <path d="M16 3 29 9.2 16 15.4 3 9.2 16 3Z" />
           <path d="m3 15.1 13 6.2 13-6.2v5.2L16 26.5 3 20.3v-5.2Z" />
@@ -50,7 +50,7 @@
             <h1>Benchmarking agent memory on LongMemEval</h1>
             <p class="dek">
               We compared raw conversation retrieval, extracted memories, and a combination
-              of the two. In our 500-question run, the combined Redis Agent Memory strategy reached
+              of the two. In our 500-question run, Remis + Instruct reached
               <strong>86.1% task-averaged accuracy</strong>.
             </p>
             <p class="byline">
@@ -148,16 +148,16 @@
               </div>
             </article>
 
-            <article class="strategy-card strategy-card-combined">
+            <article class="strategy-card strategy-card-paired">
               <span class="strategy-index">03</span>
               <h3>Remis + Instruct</h3>
-              <p class="strategy-type">Combined context</p>
+              <p class="strategy-type">Raw excerpts + extracted facts</p>
               <p>
                 Both stores are queried, then one answer call receives two labeled sections:
                 conversation excerpts and extracted memories. The answer model can draw from
                 either source when responding.
               </p>
-              <div class="flow" aria-label="Combined flow">
+              <div class="flow" aria-label="Remis plus Instruct flow">
                 <span>raw excerpts</span><b>+</b><span>facts</span><i>→</i><span>answer</span>
               </div>
             </article>
@@ -183,13 +183,13 @@
               <span class="chart-unit">Higher is better</span>
             </div>
             <p class="chart-summary">
-              The combined strategy had the highest result shown, at 86.1%. The 83.4% Remis
+              Remis + Instruct had the highest result shown, at 86.1%. The 83.4% Remis
               value is included for comparison, but we could not match it to a retained raw
               result file.
             </p>
             <div id="strategy-chart" class="chart" role="img" aria-label="Bar chart comparing Redis Agent Memory strategy accuracy"></div>
             <figcaption>
-              The combined result is the complete 500-question small-split aggregate using
+              The Remis + Instruct result is the complete 500-question small-split aggregate using
               the gpt-4o answer model and official gpt-4o judge.
             </figcaption>
           </figure>
@@ -197,7 +197,7 @@
           <figure class="chart-block chart-wide">
             <div class="chart-header">
               <div>
-                <h3>Redis Agent Memory and comparison figures</h3>
+                <h3>Remis + Instruct in context</h3>
                 <p>Task-averaged accuracy on LongMemEval small (%)</p>
               </div>
               <div class="legend" aria-label="Chart legend">
@@ -207,35 +207,74 @@
               </div>
             </div>
             <p class="chart-summary">
-              This chart places the combined Redis Agent Memory result beside reproduced and
-              published figures. It is context rather than a direct ranking: answer models,
-              benchmark splits, and completion coverage differ across rows.
+              Remis + Instruct reached 86.1%, the highest result among the systems run in our
+              evaluation code. Published figures above it use different setups and are not
+              direct comparisons.
             </p>
             <div id="leaderboard-chart" class="chart" role="img" aria-label="Leaderboard bar chart"></div>
             <figcaption>
-              Published-only values are contextual, not independently verified here. Model
-              backbones, splits, completion counts, and system boundaries can differ; hover
-              or focus a row for its note.
+              Red rows are the three Redis Agent Memory strategies described above. Orange rows
+              are third-party systems we ran. Gray rows are published figures we did not
+              independently verify. Models, splits, and system boundaries can differ.
             </figcaption>
+            <p class="comparison-footnote">
+              * OMEGA uses GPT-4.1 generation and grading with benchmark-selected prompts;
+              Chronos adds query guidance, reranking, and iterative retrieval. Neither is
+              directly comparable to our run.
+            </p>
           </figure>
         </section>
 
         <section class="narrative finding">
           <div class="section-heading">
             <p class="section-kicker">Interpretation</p>
-            <h2>Why the combined strategy may have helped</h2>
+            <h2>Why Remis + Instruct may have helped</h2>
           </div>
           <div class="prose">
             <p>
               Extracted memories can consolidate information spread across sessions and
               represent changes over time. Raw chunks preserve quotes, names, dates, and
-              numbers that an extractor may omit. The combined setup gives the answer model
+              numbers that an extractor may omit. Remis + Instruct gives the answer model
               access to both forms of context.
             </p>
             <p>
-              This is one explanation for the result, not a causal test. The evaluation does
-              not show that every application needs two stores or that the same trade-off will
-              hold with different histories, models, prompts, or latency requirements.
+              We did not test that explanation directly. Remis + Instruct also received
+              context from two retrieval paths, and we did not run an ablation with equal
+              retrieved-token budgets. The evaluation therefore cannot separate
+              complementary representations from the benefit of having more evidence available.
+              The trade-off may also change with different histories, models, prompts, or
+              latency requirements.
+            </p>
+            <p>
+              Chronos reports a similar raw-plus-structured design, but with additional query
+              guidance, reranking, and iterative retrieval.
+            </p>
+          </div>
+        </section>
+
+        <section class="narrative" aria-labelledby="related-work-title">
+          <div class="section-heading">
+            <p class="section-kicker">Related work</p>
+            <h2 id="related-work-title">Evidence for hybrid retrieval and preserving raw context</h2>
+          </div>
+          <div class="prose">
+            <p>
+              A July 2026 preprint,
+              <a href="https://arxiv.org/abs/2607.16848" rel="noreferrer"
+                ><cite>Beyond Memory Leaderboards</cite></a
+              >, evaluated eight memory and retrieval systems over full scientific papers.
+              The authors found that retrieval modality and raw-text preservation materially
+              affected results. On one of their two corpora, adding BM25 to dense retrieval
+              was the largest measured intervention for the systems where they could test it.
+            </p>
+            <p>
+              These findings provide independent evidence for core choices in our approach.
+              Remis combines dense and BM25 retrieval over raw conversation chunks, and the
+              Remis + Instruct keeps that raw evidence available alongside extracted memories.
+              The paper also found that matching retrieval budgets could change system rankings,
+              reinforcing our decision to qualify comparisons made under different protocols.
+              Its task is scientific-paper retrieval rather than conversational memory, so the
+              connection is at the level of design and evaluation principles.
             </p>
           </div>
         </section>
@@ -325,7 +364,7 @@
 
           <p class="metric-note">
             The 82% figure uses question-level accuracy. The 86.1% figure at the top is a
-            task-averaged result for the combined Remis + Instruct system. They use different
+            task-averaged result for Remis + Instruct. They use different
             metrics and are not directly comparable.
           </p>
         </section>
@@ -350,7 +389,7 @@
             </div>
             <p class="chart-summary">
               Each point combines task-averaged accuracy with estimated LLM spend per session.
-              The combined Redis Agent Memory run reached 86.1% at an estimated $0.0703 per
+              Remis + Instruct reached 86.1% at an estimated $0.0703 per
               session. Hidden server-side costs limit direct comparisons across systems.
             </p>
             <div id="cost-chart" class="chart cost-chart" role="img" aria-label="Scatter plot of accuracy and estimated cost"></div>
@@ -361,21 +400,6 @@
               the comparability limits of their associated accuracy runs.
             </figcaption>
           </figure>
-
-          <div class="metric-strip" aria-label="Cost comparison">
-            <div>
-              <span class="metric-value">$0.0703</span>
-              <span class="metric-label">estimated per session<br />Remis + Instruct</span>
-            </div>
-            <div>
-              <span class="metric-value">≈5.2×</span>
-              <span class="metric-label">estimated LLM cost ratio<br />Mastra OM / combined run</span>
-            </div>
-            <div>
-              <span class="metric-value">1.78s</span>
-              <span class="metric-label">measured query latency<br />for the combined run</span>
-            </div>
-          </div>
         </section>
 
         <section class="reproduction" aria-labelledby="reproduction-title">
@@ -418,7 +442,7 @@
         <section class="limits" id="limits" aria-labelledby="limits-title">
           <div class="section-heading">
             <p class="section-kicker">Limits</p>
-            <h2 id="limits-title">What this evaluation does not establish</h2>
+            <h2 id="limits-title">Limits of this evaluation</h2>
           </div>
           <ol class="limits-list">
             <li>
@@ -451,7 +475,7 @@
           <p class="section-kicker">Summary</p>
           <h2 id="conclusion-title">Raw excerpts and extracted memories worked better together in this run</h2>
           <p>
-            The combined strategy had the highest task-averaged accuracy of the three Redis
+            Remis + Instruct had the highest task-averaged accuracy of the three Redis
             Agent Memory approaches we tested. The extraction-model runs also varied substantially in
             accuracy, cost, and latency. Both results are specific to these benchmark settings
             and should be tested again on the workload where the memory system will be used.
@@ -471,6 +495,7 @@
           <div class="footer-links">
             <a href="data/results.json">View chart data</a>
             <a href="https://arxiv.org/abs/2410.10813" rel="noreferrer">LongMemEval paper</a>
+            <a href="https://arxiv.org/abs/2607.16848" rel="noreferrer">Related evaluation preprint</a>
           </div>
           <p class="copyright">Redis AI Research · Evaluation summary · June–July 2026</p>
         </footer>

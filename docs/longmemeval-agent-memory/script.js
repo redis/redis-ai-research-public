@@ -7,6 +7,7 @@ const COLORS = {
   orange: "#d77b2d",
   published: "#918b82",
   blue: "#42657a",
+  white: "#fffdf8",
 };
 
 const tooltip = document.querySelector("#chart-tooltip");
@@ -88,8 +89,8 @@ function addGrid(svg, { x, y, width, height, values, scale, format = String }) {
 function drawStrategyChart(data) {
   const root = document.querySelector("#strategy-chart");
   const width = 900;
-  const height = 390;
-  const margin = { top: 25, right: 35, bottom: 80, left: 55 };
+  const height = 350;
+  const margin = { top: 22, right: 35, bottom: 66, left: 55 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const svg = svgEl("svg", {
@@ -133,7 +134,7 @@ function drawStrategyChart(data) {
           y: barY - 12,
           fill: COLORS.ink,
           "font-family": "Georgia, serif",
-          "font-size": 24,
+          "font-size": 22,
           "font-weight": 700,
           "text-anchor": "middle",
         },
@@ -143,9 +144,9 @@ function drawStrategyChart(data) {
         "text",
         {
           x: x + barWidth / 2,
-          y: margin.top + innerHeight + 31,
+          y: margin.top + innerHeight + 27,
           fill: COLORS.ink,
-          "font-size": 13,
+          "font-size": 12,
           "font-weight": 700,
           "text-anchor": "middle",
         },
@@ -153,13 +154,10 @@ function drawStrategyChart(data) {
       ),
     );
 
-    const details = item.sample_weighted_accuracy
-      ? `<br>Sample-weighted: <strong>${item.sample_weighted_accuracy.toFixed(1)}%</strong> (${item.correct}/${item.total})`
-      : "";
     makeInteractive(
       group,
       `${item.name}: ${item.task_averaged_accuracy}% task-averaged accuracy`,
-      `<strong>${item.name}</strong><br>Task-averaged: <strong>${item.task_averaged_accuracy.toFixed(1)}%</strong>${details}<br>${item.note}`,
+      `<strong>${item.name}</strong><br>Task-averaged: <strong>${item.task_averaged_accuracy.toFixed(1)}%</strong><br>${item.note}`,
     );
     svg.append(group);
   });
@@ -170,8 +168,8 @@ function drawStrategyChart(data) {
 function drawLeaderboard(data) {
   const root = document.querySelector("#leaderboard-chart");
   const width = 1040;
-  const rowHeight = 31;
-  const margin = { top: 30, right: 45, bottom: 35, left: 205 };
+  const rowHeight = 28;
+  const margin = { top: 27, right: 45, bottom: 30, left: 205 };
   const innerWidth = width - margin.left - margin.right;
   const height = margin.top + margin.bottom + data.length * rowHeight;
   const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
@@ -208,16 +206,16 @@ function drawLeaderboard(data) {
 
   data.forEach((item, index) => {
     const y = margin.top + index * rowHeight;
-    const barHeight = 18;
+    const barHeight = 16;
     const group = svgEl("g");
     group.append(
       svgEl(
         "text",
         {
           x: margin.left - 12,
-          y: y + 14,
+          y: y + 12,
           fill: COLORS.ink,
-          "font-size": 11,
+          "font-size": 10.5,
           "font-weight": item.kind === "redis" ? 750 : 500,
           "text-anchor": "end",
         },
@@ -235,14 +233,32 @@ function drawLeaderboard(data) {
         "text",
         {
           x: x(item.accuracy) + 8,
-          y: y + 14,
+          y: y + 12,
           fill: COLORS.ink,
-          "font-size": 11,
+          "font-size": 10.5,
           "font-weight": 700,
         },
         item.accuracy.toFixed(1),
       ),
     );
+
+    if (item.flag) {
+      group.append(
+        svgEl(
+          "text",
+          {
+            x: x(item.accuracy) - 7,
+            y: y + 11.5,
+            fill: COLORS.white,
+            "font-size": 8.5,
+            "font-weight": 800,
+            "letter-spacing": 0.35,
+            "text-anchor": "end",
+          },
+          item.flag.toUpperCase(),
+        ),
+      );
+    }
 
     makeInteractive(
       group,
@@ -258,8 +274,8 @@ function drawLeaderboard(data) {
 function drawCostChart(data) {
   const root = document.querySelector("#cost-chart");
   const width = 980;
-  const height = 540;
-  const margin = { top: 30, right: 105, bottom: 75, left: 65 };
+  const height = 490;
+  const margin = { top: 25, right: 100, bottom: 65, left: 65 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const minCost = 0.008;
@@ -350,11 +366,9 @@ function drawCostChart(data) {
   );
 
   const labelOffsets = {
-    "Redis Agent Memory (combined)": [12, -15],
-    "Redis Agent Memory (Remis)": [12, 18],
-    "Redis Agent Memory (Instruct)": [12, -8],
-    "Redis Agent Memory (AMS)": [12, 16],
-    "Redis Agent Memory (RAG)": [12, 18],
+    "Remis + Instruct": [12, -15],
+    Remis: [12, 18],
+    Instruct: [12, -8],
     "Mastra OM": [-12, -13],
     "emergence-fast": [-12, 19],
     "Amazon AgentCore": [12, -13],
@@ -391,9 +405,9 @@ function drawCostChart(data) {
       svgEl("circle", {
         cx: px,
         cy: py,
-        r: item.name === "Redis Agent Memory (combined)" ? 9 : 6.5,
+        r: item.name === "Remis + Instruct" ? 9 : 6.5,
         fill,
-        stroke: item.name === "Redis Agent Memory (combined)" ? COLORS.ink : "none",
+        stroke: item.name === "Remis + Instruct" ? COLORS.ink : "none",
         "stroke-width": 2,
       }),
       svgEl(
@@ -402,8 +416,8 @@ function drawCostChart(data) {
           x: px + dx,
           y: py + dy,
           fill: COLORS.ink,
-          "font-size": item.name === "Redis Agent Memory (combined)" ? 12 : 10.5,
-          "font-weight": item.name === "Redis Agent Memory (combined)" ? 800 : 600,
+          "font-size": item.name === "Remis + Instruct" ? 12 : 10.5,
+          "font-weight": item.name === "Remis + Instruct" ? 800 : 600,
           "text-anchor": anchor,
         },
         item.name,
@@ -632,8 +646,8 @@ function wrapLabel(svg, label, x, y) {
 function drawReproductionChart(data) {
   const root = document.querySelector("#reproduction-chart");
   const width = 900;
-  const height = 440;
-  const margin = { top: 25, right: 35, bottom: 100, left: 55 };
+  const height = 390;
+  const margin = { top: 22, right: 35, bottom: 85, left: 55 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
@@ -719,7 +733,7 @@ function drawReproductionChart(data) {
 
 async function initCharts() {
   try {
-    const response = await fetch("data/results.json?v=20260720-synopsis");
+    const response = await fetch("data/results.json?v=20260728-compact-footnote");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     drawStrategyChart(data.redis_strategies);

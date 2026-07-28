@@ -25,5 +25,5 @@
     <text x="157" y="177" fill="#fffdf8" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">TASK-AVERAGED ACCURACY</text>
     <text x="157" y="217" fill="#fffdf8" fill-opacity=".78" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">425 of 500 correct</text>
   </g>
-  <text x="72" y="554" fill="#68645d" font-family="Georgia, serif" font-size="25">Raw retrieval, extracted memories, and a combined approach.</text>
+  <text x="72" y="554" fill="#68645d" font-family="Georgia, serif" font-size="25">Instruct, Remis, and Remis + Instruct.</text>
 </svg>

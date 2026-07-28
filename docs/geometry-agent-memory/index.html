@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="A geometric diagnostic for forecasting per-question failures in agent memory systems."
+      content="A study of whether embedding geometry can forecast individual failures in agent memory systems."
     />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#f5f1e8" />
@@ -17,13 +17,13 @@
     />
     <meta property="og:image" content="assets/social-card.svg" />
     <title>The Geometry of Agent Memory</title>
-    <link rel="stylesheet" href="styles.css?v=20260724" />
+    <link rel="stylesheet" href="styles.css?v=20260724-closeups" />
   </head>
   <body>
     <a class="skip-link" href="#article">Skip to article</a>
 
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="Redis AI Research, article top">
+      <a class="brand" href="../" aria-label="Redis AI Research, home">
         <svg viewBox="0 0 32 32" aria-hidden="true">
           <path d="M16 3 29 9.2 16 15.4 3 9.2 16 3Z" />
           <path d="m3 15.1 13 6.2 13-6.2v5.2L16 26.5 3 20.3v-5.2Z" />
@@ -64,23 +64,23 @@
         </header>
 
         <section class="read-this-first" aria-labelledby="read-first-title">
-          <p class="section-kicker">What we measured</p>
-          <h2 id="read-first-title">A diagnostic, not a replacement for evaluation</h2>
+          <p class="section-kicker">Reading the result</p>
+          <h2 id="read-first-title">What the 0.689 result covers</h2>
           <div class="qualification-grid">
             <p>
-              <strong>The forecast.</strong> A classifier uses distances and structure in the
+              <strong>Prediction.</strong> A classifier uses distances and structure in the
               joint space of conversation turns, stored memories, and the incoming query to
               estimate whether an answer will be correct.
             </p>
             <p>
-              <strong>The headline number.</strong> ROC-AUC 0.689 pools 1,368 rows from three
+              <strong>Scope.</strong> ROC-AUC 0.689 pools 1,368 rows from three
               systems. On one fixed system—the way it would be deployed—the observed ROC-AUC
               is about 0.63.
             </p>
             <p>
-              <strong>The boundary.</strong> This does not replace end-to-end testing, rank
-              memory systems, or provide a better retriever. It is a per-question warning
-              signal with clearly measured limits.
+              <strong>Intended use.</strong> The model estimates risk for individual questions.
+              We evaluated it alongside end-to-end QA tests; we did not use it to rank memory
+              systems or select retrieved memories.
             </p>
           </div>
         </section>
@@ -88,30 +88,64 @@
         <section class="visual-intro" aria-labelledby="atlas-title">
           <div class="section-heading">
             <p class="section-kicker">The intuition</p>
-            <h2 id="atlas-title">A query can be close to the stored memory—or far from it</h2>
+            <h2 id="atlas-title">Memory strategies give the same conversation a different shape</h2>
             <p>
-              Memory systems already represent queries and memories as vectors. Conversation
-              turns can be placed in the same space. Together they form a point cloud that
-              shows how well the stored memory covers the conversation and whether the query
-              can reach relevant information.
+              Connect the turns in each session and the conversation becomes a set of paths
+              through embedding space. Instruct extracts standalone facts, which spread into
+              a broader cloud around those paths. Remis stores raw semantic chunks, so its
+              memory points stay much closer to the conversation turn by turn.
             </p>
           </div>
-          <figure class="chart-block image-figure">
+          <figure class="chart-block strategy-geometry-figure">
             <p class="chart-summary">
-              The top panels are illustrative t-SNE views of one correct and one incorrect
-              example. The lower panel uses original-space cosine distance: memories for the
-              correct example are closer to its query across the ranking.
+              Both panels show the same LongMemEval conversation in one shared projection.
+              Zooming either panel keeps the views aligned, so the strategies can be compared
+              at the same location.
             </p>
-            <img
-              src="assets/fig0_manifold.png"
-              width="1038"
-              height="709"
-              decoding="async"
-              alt="Two agent-memory point clouds and their original-space query-to-memory distance curves"
-            />
+            <div
+              class="geometry-explorer"
+              id="strategy-geometry-explorer"
+              data-source="data/strategy-geometry.json?v=20260726-music"
+            >
+              <div class="geometry-toolbar">
+                <div class="geometry-legend" aria-label="Figure legend">
+                  <span><i class="legend-path"></i>Conversation turns, connected in order</span>
+                  <span><i class="legend-memory"></i>Stored memory</span>
+                  <span><i class="legend-query"></i>Test question</span>
+                </div>
+                <div class="geometry-controls" aria-label="Zoom controls">
+                  <button type="button" data-zoom-out aria-label="Zoom out">−</button>
+                  <output data-zoom-status aria-label="Current zoom">1.0×</output>
+                  <button type="button" data-zoom-in aria-label="Zoom in">+</button>
+                  <button type="button" data-zoom-reset>Reset</button>
+                </div>
+              </div>
+              <p class="geometry-instructions">
+                Scroll to zoom, drag to pan, and hover over a point to read it. Both panels
+                move together.
+              </p>
+              <p class="geometry-error" hidden></p>
+              <div class="geometry-panels" aria-live="polite"></div>
+              <div class="geometry-focus-heading">
+                <span>Two close readings</span>
+                <h3>What the points represent in specific parts of the conversation</h3>
+              </div>
+              <div class="geometry-focus-list"></div>
+              <div class="geometry-tooltip" role="status" hidden></div>
+            </div>
+            <noscript>
+              <img
+                class="geometry-fallback"
+                src="assets/strategy-geometry.png?v=20260726-music"
+                width="1600"
+                height="740"
+                alt="Instruct memories spread around conversation paths while Remis memories stay close to those paths"
+              />
+            </noscript>
             <figcaption>
-              The 2D projection is only a visual aid. Every reported metric uses cosine
-              distance in the original embedding space.
+              This is one LongMemEval conversation. Its median original-space memory-to-nearest-
+              turn distance is 0.30 for Instruct and 0.06 for Remis. The shared t-SNE projection
+              is for inspection only; reported analyses use the original embedding space.
             </figcaption>
           </figure>
         </section>
@@ -198,15 +232,15 @@
           </div>
           <p class="metric-note">
             The joined analysis contains 1,368 rows: 412, 456, and 500 from the
-            three runs. These accuracy figures describe the systems; they are not the target
-            of a new system-ranking claim.
+            three runs. The system accuracies identify the source runs; the forecasting
+            analysis evaluates individual questions within them.
           </p>
         </section>
 
         <section class="results-section geometry-results" id="results" aria-labelledby="results-title">
           <div class="section-heading">
             <p class="section-kicker">Forecasting results</p>
-            <h2 id="results-title">Geometry carried a useful but modest signal</h2>
+            <h2 id="results-title">Forecasting accuracy across questions and systems</h2>
             <p>
               We used grouped five-fold cross-validation, keeping all rows for the same
               question in one fold. This prevents the same conversation-level information
@@ -242,7 +276,7 @@
 
           <div class="result-notes">
             <article>
-              <h3>The improvement is real, but not large</h3>
+              <h3>Geometry added 0.062 over retrieval similarity</h3>
               <p>
                 Geometry exceeded retrieval similarity by 0.062 AUROC, with a paired 95%
                 confidence interval of [0.028, 0.095]. Question difficulty was already
@@ -251,7 +285,7 @@
               </p>
             </article>
             <article>
-              <h3>The answer model’s confidence did not help</h3>
+              <h3>The answer model’s confidence was below chance</h3>
               <p>
                 Two standard self-confidence measures were below chance: verbalised
                 confidence reached 0.434 and P(True) log-probability reached 0.427. In this
@@ -338,8 +372,8 @@
 
         <section class="limits" id="limits" aria-labelledby="limits-title">
           <div class="section-heading">
-            <p class="section-kicker">What did not hold</p>
-            <h2 id="limits-title">The limits are part of the result</h2>
+            <p class="section-kicker">Limits</p>
+            <h2 id="limits-title">Study scope and unresolved questions</h2>
           </div>
           <ol class="limits-list">
             <li>
@@ -392,14 +426,14 @@
 
         <section class="conclusion" aria-labelledby="conclusion-title">
           <p class="section-kicker">Summary</p>
-          <h2 id="conclusion-title">Embedding geometry can provide an early warning</h2>
+          <h2 id="conclusion-title">What embedding geometry predicted in these runs</h2>
           <p>
             The geometry of turns, memories, and a query forecast per-question correctness
             better than retrieval similarity and far better than the answer model’s own
             confidence in this study. Query reachability survived an intervention and
-            replicated on LoCoMo. The practical result is not a replacement for evaluation
-            or retrieval, but a low-cost signal that could support decisions to answer,
-            defer, or fall back. Prospective deployment was not tested.
+            replicated on LoCoMo. The practical question is whether this low-cost signal can
+            help a deployed system decide when to answer, defer, or fall back. We did not test
+            that prospectively.
           </p>
         </section>
 
@@ -425,5 +459,6 @@
         </footer>
       </article>
     </main>
+    <script src="strategy-geometry.js?v=20260724-closeups"></script>
   </body>
 </html>

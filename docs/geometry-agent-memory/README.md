@@ -5,9 +5,9 @@ study in `experiments/ams-eval/wip.ignore`.
 
 ## Publication status
 
-This article is a draft. It is intentionally not linked from the public site
-homepage because the source paper is being considered for a NeurIPS 2026
-workshop. Confirm publication timing and venue rules before making it public.
+This article is an unlisted draft and is not linked from the site homepage.
+The source paper is being considered for a NeurIPS 2026 workshop. Confirm
+publication timing and venue rules before listing or distributing it publicly.
 
 ## Preview
 
@@ -40,6 +40,10 @@ The source paths are in the separate local evaluation repository:
 - The dense-versus-hybrid retrieval explanation is reported as a negative result.
 - Closest-memory selection is described as matching, not beating, the tuned
   native retriever.
-- t-SNE is identified as illustrative; metric claims use original-space cosine
-  distances.
+- The opening strategy comparison uses one shared t-SNE projection so the same
+  conversation has the same coordinates in both panels. The displayed nearest-turn
+  distances and all reported analyses use original-space cosine distance.
+- `tools/generate_strategy_geometry.py` regenerates the opening figure from the
+  locked Remis and Redis-Instruct runs and the local embedding cache. It also writes
+  the JSON used by the interactive zoom view and its two conversation close-ups.
 - The article does not claim to replace end-to-end evaluation or rank systems.

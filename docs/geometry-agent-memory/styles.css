@@ -947,6 +947,392 @@ figcaption {
   background: var(--white);
 }
 
+.strategy-geometry-figure {
+  position: relative;
+  left: 50%;
+  width: min(calc(100vw - 2rem), 1480px);
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+
+.strategy-geometry-figure .chart-summary {
+  max-width: 780px;
+}
+
+.geometry-explorer {
+  margin-top: 1.5rem;
+  color: var(--ink);
+  font-family:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.geometry-toolbar {
+  display: flex;
+  min-height: 4.5rem;
+  padding: 0.9rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: var(--paper);
+}
+
+.geometry-legend {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  color: #45413c;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.geometry-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.geometry-legend i {
+  position: relative;
+  display: inline-block;
+  width: 1.55rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.geometry-legend .legend-path::before {
+  position: absolute;
+  top: 0.46rem;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--blue);
+  content: "";
+}
+
+.geometry-legend .legend-path::after {
+  position: absolute;
+  top: 0.24rem;
+  left: 0.6rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border: 1px solid var(--blue);
+  border-radius: 50%;
+  background: var(--white);
+  content: "";
+}
+
+.geometry-legend .legend-memory::after {
+  position: absolute;
+  top: 0.16rem;
+  left: 0.48rem;
+  width: 0.58rem;
+  height: 0.58rem;
+  border: 2px solid #e8820c;
+  border-radius: 50%;
+  content: "";
+}
+
+.geometry-legend .legend-query::after {
+  position: absolute;
+  top: -0.18rem;
+  left: 0.42rem;
+  color: var(--red);
+  content: "★";
+  font-size: 1.25rem;
+  line-height: 1;
+  text-shadow:
+    -0.5px 0 var(--ink),
+    0 0.5px var(--ink),
+    0.5px 0 var(--ink),
+    0 -0.5px var(--ink);
+}
+
+.geometry-controls {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.geometry-controls button,
+.geometry-controls output {
+  display: grid;
+  min-width: 2.5rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0 0.7rem;
+  border: 0;
+  border-right: 1px solid var(--line);
+  color: var(--ink);
+  background: transparent;
+  place-items: center;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.geometry-controls button {
+  cursor: pointer;
+}
+
+.geometry-controls button:last-child {
+  border-right: 0;
+}
+
+.geometry-controls button:hover,
+.geometry-controls button:focus-visible {
+  color: var(--white);
+  background: var(--red);
+}
+
+.geometry-instructions,
+.geometry-error {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--white);
+  font-size: 0.78rem;
+}
+
+.geometry-error {
+  color: var(--red-dark);
+}
+
+.geometry-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.geometry-panel {
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.geometry-panel header {
+  display: flex;
+  min-height: 6.2rem;
+  padding: 1.15rem 1.35rem;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.geometry-panel header span,
+.geometry-focus-copy > span {
+  display: block;
+  margin-bottom: 0.32rem;
+  color: var(--red-dark);
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.geometry-panel h4,
+.geometry-focus h4 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.7rem, 2.5vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.geometry-panel header small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.geometry-panel > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  background: #faf8f2;
+  cursor: grab;
+  touch-action: none;
+}
+
+.geometry-panel > svg.is-dragging {
+  cursor: grabbing;
+}
+
+.conversation-path {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 1.05;
+  opacity: 0.34;
+  vector-effect: non-scaling-stroke;
+}
+
+.conversation-turn {
+  fill: var(--white);
+  stroke: var(--blue);
+  stroke-width: 0.85;
+  opacity: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+.stored-memory {
+  fill: none;
+  stroke: #e8820c;
+  stroke-width: 1.25;
+  opacity: 0.78;
+  vector-effect: non-scaling-stroke;
+}
+
+.test-question {
+  fill: var(--red);
+  stroke: var(--ink);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+.conversation-turn:hover,
+.stored-memory:hover,
+.test-question:hover {
+  opacity: 1;
+  stroke-width: 2.2;
+}
+
+.geometry-focus-heading {
+  max-width: 900px;
+  padding: 3rem 0 1.3rem;
+}
+
+.geometry-focus-heading > span {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--red);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.geometry-focus-heading h3 {
+  max-width: 760px;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+}
+
+.geometry-focus-list {
+  border-top: 1px solid var(--line);
+}
+
+.geometry-focus {
+  display: grid;
+  grid-template-columns: minmax(270px, 0.48fr) minmax(0, 1.52fr);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.geometry-focus-copy {
+  padding: 1.6rem;
+  border-right: 1px solid var(--line);
+}
+
+.geometry-focus-copy p {
+  margin: 1.15rem 0 0;
+  color: #4e4a44;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.geometry-focus-copy strong {
+  color: var(--ink);
+}
+
+.geometry-focus-diagrams {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.geometry-focus-panel {
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  background: var(--white);
+}
+
+.geometry-focus-panel:last-child {
+  border-right: 0;
+}
+
+.geometry-focus-title {
+  display: flex;
+  min-height: 3.4rem;
+  padding: 0.75rem 0.9rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.geometry-focus-title strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.geometry-focus-title span {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.geometry-focus-panel svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #faf8f2;
+}
+
+.geometry-tooltip {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  width: min(360px, calc(100vw - 2rem));
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  background: var(--white);
+  box-shadow: 0 10px 30px rgba(23, 23, 22, 0.14);
+  pointer-events: none;
+  flex-direction: column;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.geometry-tooltip strong {
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.geometry-tooltip small {
+  margin-top: 0.55rem;
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+
+.geometry-fallback {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+}
+
 .feature-section {
   padding-top: 1rem;
 }
@@ -1117,6 +1503,15 @@ figcaption {
   .feature-grid article {
     min-height: 220px;
   }
+
+  .geometry-focus {
+    grid-template-columns: 1fr;
+  }
+
+  .geometry-focus-copy {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
 }
 
 @media (max-width: 700px) {
@@ -1152,5 +1547,50 @@ figcaption {
 
   .image-figure img {
     min-width: 680px;
+  }
+
+  .strategy-geometry-figure {
+    width: calc(100vw - 1rem);
+    padding: 0.75rem;
+  }
+
+  .geometry-toolbar,
+  .geometry-legend {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .geometry-toolbar {
+    gap: 0.85rem;
+  }
+
+  .geometry-legend {
+    gap: 0.65rem;
+  }
+
+  .geometry-panels,
+  .geometry-focus-diagrams {
+    grid-template-columns: 1fr;
+  }
+
+  .geometry-panel header {
+    min-height: 5.2rem;
+  }
+
+  .geometry-panel > svg {
+    max-height: none;
+  }
+
+  .geometry-focus-panel {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .geometry-focus-panel:last-child {
+    border-bottom: 0;
+  }
+
+  .geometry-fallback {
+    min-width: 920px;
   }
 }
