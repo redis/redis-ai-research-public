@@ -1,0 +1,17 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+dump.rdb
+
+# Generated session exports and analysis artifacts
+local_logs/
+metrics/
+session_trajectories/
+cohort-analysis/metrics/
+cohort-analysis/session-cohort-output.json
+cohort-analysis/worker-inputs/
+cohort-analysis/worker-outputs/
+cohort-analysis/worker-notes.txt
+cohort-analysis/worker-notes.json
+ses_*_export.json
