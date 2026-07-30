@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Results from a 500-question evaluation of Redis Agent Memory strategies on the LongMemEval small split."
+      content="Results from a 500-question evaluation of raw conversation retrieval, extracted memories, and a hybrid configuration on LongMemEval."
     />
     <meta
       name="author"
@@ -13,14 +13,14 @@
     />
     <meta name="theme-color" content="#f5f1e8" />
     <meta property="og:type" content="article" />
-    <meta property="og:title" content="Redis Agent Memory on LongMemEval" />
+    <meta property="og:title" content="Building and evaluating long-term conversational memory" />
     <meta
       property="og:url"
       content="https://redis.github.io/redis-ai-research-public/longmemeval-agent-memory/"
     />
     <meta
       property="og:description"
-      content="A 500-question evaluation of raw conversation retrieval, extracted memories, and a configuration combining both."
+      content="We built and evaluated raw conversation retrieval, extracted memories, and a hybrid approach on 500 LongMemEval questions."
     />
     <meta
       property="og:image"
@@ -30,16 +30,16 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Redis Agent Memory on LongMemEval" />
+    <meta name="twitter:title" content="Building and evaluating long-term conversational memory" />
     <meta
       name="twitter:description"
-      content="A 500-question evaluation of raw conversation retrieval, extracted memories, and a configuration combining both."
+      content="We built and evaluated raw conversation retrieval, extracted memories, and a hybrid approach on 500 LongMemEval questions."
     />
     <meta
       name="twitter:image"
       content="https://redis.github.io/redis-ai-research-public/longmemeval-agent-memory/assets/social-card.png"
     />
-    <title>Redis Agent Memory on LongMemEval</title>
+    <title>Building and evaluating long-term conversational memory</title>
     <link rel="stylesheet" href="styles.css?v=20260730-reasoning-effect" />
     <script src="script.js?v=20260730-minimal-tooltips" defer></script>
   </head>
@@ -67,10 +67,11 @@
         <header class="hero" id="top">
           <div class="hero-copy">
             <p class="eyebrow">Agent memory · LongMemEval · June 2026</p>
-            <h1>Redis Agent Memory on LongMemEval</h1>
+            <h1>Building and evaluating long-term conversational memory</h1>
             <p class="dek">
-              We compared raw conversation retrieval, extracted memories, and a combination
-              of the two. Across the completed 500-question evaluation, Remis + Instruct reached
+              We built three approaches to retaining information across conversations—raw
+              retrieval, extracted memories, and a hybrid of both—and evaluated them on 500
+              LongMemEval questions. The hybrid approach reached
               <strong>86.1% task-averaged accuracy</strong>.
             </p>
             <div class="hero-meta">
@@ -117,8 +118,8 @@
 
         <section class="strategy-section" aria-labelledby="strategies-title">
           <div class="section-heading">
-            <p class="section-kicker">Redis Agent Memory</p>
-            <h2 id="strategies-title">Three memory strategies</h2>
+            <p class="section-kicker">Memory strategies</p>
+            <h2 id="strategies-title">Three approaches</h2>
           </div>
 
           <div class="strategy-grid">
@@ -192,7 +193,7 @@
         <section class="results-section" id="results" aria-labelledby="results-title">
           <div class="section-heading">
             <p class="section-kicker">Results</p>
-            <h2 id="results-title">Results for Redis Agent Memory strategies</h2>
+            <h2 id="results-title">Results for the tested strategies</h2>
             <p>
               The figures show overall accuracy, task-level results, and comparisons with
               other memory systems.
@@ -247,7 +248,7 @@
                   <p>LongMemEval small (%)</p>
                 </div>
                 <div class="legend" aria-label="Chart legend">
-                  <span><i class="legend-swatch redis"></i>Redis Agent Memory</span>
+                  <span><i class="legend-swatch redis"></i>Our configurations</span>
                   <span><i class="legend-swatch reproduced"></i>Measured third-party</span>
                   <span><i class="legend-swatch published"></i>Published only</span>
                 </div>
@@ -256,7 +257,7 @@
                 id="leaderboard-chart"
                 class="chart"
                 role="img"
-                aria-label="Leaderboard comparing Redis Agent Memory with measured and published systems"
+                aria-label="Leaderboard comparing our memory configurations with measured and published systems"
               ></div>
             </figure>
             <div class="leaderboard-copy">
@@ -332,7 +333,7 @@
                   <p>Upper-left is better; cost axis is logarithmic</p>
                 </div>
                 <div class="legend" aria-label="Chart legend">
-                  <span><i class="legend-swatch redis"></i>Redis Agent Memory</span>
+                  <span><i class="legend-swatch redis"></i>Our configurations</span>
                   <span><i class="legend-swatch reproduced"></i>Complete third-party</span>
                   <span><i class="legend-swatch qualified"></i>Partial or lower bound</span>
                 </div>
