@@ -253,11 +253,12 @@ function drawLeaderboard(data) {
       );
     }
 
-    if (item.kind === "published") {
+    if (item.kind === "published" || item.name === "Google Vertex Memory Bank") {
+      const accuracyLabel = item.kind === "published" ? "published accuracy" : "measured accuracy";
       makeInteractive(
         group,
-        `${item.name}: ${item.accuracy}% published accuracy`,
-        `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% published accuracy<br>${item.note}`,
+        `${item.name}: ${item.accuracy}% ${accuracyLabel}`,
+        `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% ${accuracyLabel}<br>${item.note}`,
       );
     }
     svg.append(group);
@@ -616,7 +617,7 @@ function drawExtractionChart(data) {
 
 async function initCharts() {
   try {
-    const response = await fetch("data/results.json?v=20260730-minimal-tooltips");
+    const response = await fetch("data/results.json?v=20260730-google-context");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     drawPerTaskChart(data.per_task_comparison);

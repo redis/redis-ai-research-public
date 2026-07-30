@@ -484,6 +484,17 @@ h3 {
   min-height: 0;
 }
 
+.chart-header sup {
+  margin-left: 0.1rem;
+  color: var(--red);
+  font-size: 0.65em;
+}
+
+.snapshot-note {
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+}
+
 .leaderboard-copy {
   padding: clamp(1.3rem, 2.5vw, 2rem);
   align-self: center;

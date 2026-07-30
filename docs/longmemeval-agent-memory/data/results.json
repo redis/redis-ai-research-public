@@ -133,7 +133,7 @@
       "accuracy": 42.4,
       "kind": "reproduced",
       "model": "gpt-4o answer",
-      "note": "Product measured in our evaluation; its managed ingestion cost is not captured."
+      "note": "Configurable black box; this was our best effort to obtain a strong benchmark result."
     }
   ],
   "cost_accuracy": [
@@ -183,7 +183,7 @@
       "cost_usd_per_million_conversation_tokens": 9.495,
       "kind": "qualified",
       "lower_bound": true,
-      "note": "Complete Small-split accuracy; managed ingestion cost is unavailable."
+      "note": "Configurable black box; this was our best effort to obtain a strong benchmark result."
     }
   ],
   "extraction_evaluation": {
