@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Benchmarking agent memory on LongMemEval</title>
+  <title id="title">Redis Agent Memory on LongMemEval</title>
   <desc id="desc">Results from a 500-question LongMemEval evaluation, including an 86.1 percent task-averaged result.</desc>
   <rect width="1200" height="630" fill="#f5f1e8"/>
   <path d="M0 0h1200v8H0z" fill="#d52b1e"/>
@@ -15,15 +15,15 @@
   </g>
   <text x="72" y="188" fill="#d52b1e" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="3">AGENT MEMORY / LONGMEMEVAL</text>
   <text x="72" y="282" fill="#171716" font-family="Georgia, serif" font-size="67" letter-spacing="-3">
-    <tspan x="72">Benchmarking agent</tspan>
-    <tspan x="72" dy="76">memory on LongMemEval</tspan>
+    <tspan x="72">Redis Agent Memory</tspan>
+    <tspan x="72" dy="76">on LongMemEval</tspan>
   </text>
   <g transform="translate(814 180)">
     <rect width="314" height="290" fill="#d52b1e"/>
     <rect x="16" y="16" width="282" height="258" fill="none" stroke="#fffdf8" stroke-opacity=".55"/>
     <text x="157" y="140" fill="#fffdf8" font-family="Georgia, serif" font-size="91" text-anchor="middle" letter-spacing="-5">86.1%</text>
     <text x="157" y="177" fill="#fffdf8" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">TASK-AVERAGED ACCURACY</text>
-    <text x="157" y="217" fill="#fffdf8" fill-opacity=".78" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">425 of 500 correct</text>
+    <text x="157" y="217" fill="#fffdf8" fill-opacity=".78" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">500-QUESTION EVALUATION</text>
   </g>
   <text x="72" y="554" fill="#68645d" font-family="Georgia, serif" font-size="25">Instruct, Remis, and Remis + Instruct.</text>
 </svg>

@@ -8,189 +8,182 @@
     "judge_model": "gpt-4o",
     "primary_metric": "task-averaged accuracy",
     "evaluation_date": "2026-06",
-    "cost_formula": "ingest_usd_per_session + 5.13 * query_usd_per_question",
-    "cost_scope": "Measured LLM token usage at list prices; excludes infrastructure, hosting, and unobserved server-side spend."
+    "cost_formula": "1,000,000 * modeled visible LLM spend for one memory query per observed user turn / observed conversation tokens",
+    "cost_scope": "Modeled visible LLM spend at list prices per 1M LongMemEval Small conversation tokens, assuming one memory query per user turn; excludes infrastructure, hosting, and unobserved server-side spend."
   },
   "redis_strategies": [
     {
       "name": "Instruct",
-      "task_averaged_accuracy": 72.3,
+      "task_averaged_accuracy": 71.24,
       "kind": "redis",
-      "note": "LLM-extracted one-fact-per-row memories."
-    },
-    {
-      "name": "Remis",
-      "task_averaged_accuracy": 83.4,
-      "kind": "redis",
-      "note": "Remis retrieves semantically relevant chunks from raw conversations. We recorded 83.4% for this configuration, but could not find a retained raw result file that reproduces it."
+      "note": "Complete 500-question Small-split run using per-message ingestion retrieval."
     },
     {
       "name": "Remis + Instruct",
       "task_averaged_accuracy": 86.14,
       "kind": "redis",
-      "note": "Complete official small-split aggregate: 86.14% task-averaged, with 425/500 answers judged correct. Remis top_k=5, context_window=1; Instruct search_limit=40."
+      "note": "Completed 500-question Small-split aggregate: Remis top_k=5, context_window=1; Instruct search_limit=40."
+    }
+  ],
+  "per_task_comparison": [
+    {
+      "task": "User facts",
+      "count": 70,
+      "instruct": 95.71,
+      "remis_instruct": 97.14
+    },
+    {
+      "task": "Preferences",
+      "count": 30,
+      "instruct": 40.0,
+      "remis_instruct": 73.33
+    },
+    {
+      "task": "Assistant facts",
+      "count": 56,
+      "instruct": 76.79,
+      "remis_instruct": 100.0
+    },
+    {
+      "task": "Multi-session",
+      "count": 133,
+      "instruct": 69.17,
+      "remis_instruct": 75.94
+    },
+    {
+      "task": "Temporal reasoning",
+      "count": 133,
+      "instruct": 71.43,
+      "remis_instruct": 81.95
+    },
+    {
+      "task": "Knowledge updates",
+      "count": 78,
+      "instruct": 74.36,
+      "remis_instruct": 88.46
     }
   ],
   "leaderboard": [
-    {
-      "name": "OMEGA*",
-      "accuracy": 95.4,
-      "kind": "published",
-      "model": "GPT-4.1",
-      "note": "Different setup: GPT-4.1 generation and grading with benchmark-selected prompts; not directly comparable."
-    },
-    {
-      "name": "PwC Chronos*",
-      "accuracy": 92.07,
-      "kind": "published",
-      "model": "gpt-4o",
-      "note": "Different setup: query guidance, reranking, and iterative retrieval; not directly comparable."
-    },
     {
       "name": "Remis + Instruct",
       "accuracy": 86.14,
       "kind": "redis",
       "model": "gpt-4o",
-      "flag": "our 500-question run",
-      "note": "Complete 500-question small-split aggregate: 86.14% task-averaged, with 425/500 answers judged correct."
+      "flag": "our complete run",
+      "note": "500-question evaluation result."
     },
     {
       "name": "Oracle Agent Memory",
       "accuracy": 86.0,
       "kind": "reproduced",
       "model": "gpt-5.5 xhigh",
-      "note": "Reproduced, but with a stronger answer model; not directly comparable to gpt-4o runs."
+      "note": "Measured on 479/500 questions using a stronger answer model; not a direct comparison."
     },
     {
       "name": "Mastra OM",
-      "accuracy": 84.2,
+      "accuracy": 84.24,
       "kind": "reproduced",
-      "model": "gemini + gpt-4o",
-      "note": "Reproduced score matched the published figure."
-    },
-    {
-      "name": "Remis",
-      "accuracy": 83.4,
-      "kind": "redis",
-      "model": "gpt-4o",
-      "note": "Remis retrieves semantically relevant chunks from raw conversations. We recorded 83.4% for this configuration, but could not find a retained raw result file that reproduces it."
+      "model": "Gemini + gpt-4o",
+      "note": "Complete run measured in our evaluation; the score matched the published figure."
     },
     {
       "name": "Supermemory",
       "accuracy": 81.6,
       "kind": "published",
       "model": "not disclosed here",
-      "note": "Published figure; not reproduced in this evaluation."
+      "note": "Published figure; not measured in our evaluation."
     },
     {
       "name": "emergence-fast",
-      "accuracy": 81.3,
+      "accuracy": 81.34,
       "kind": "reproduced",
       "model": "gpt-4o answer",
-      "note": "Reproduced result; published figure was 82.4%."
-    },
-    {
-      "name": "Amazon AgentCore",
-      "accuracy": 77.0,
-      "kind": "reproduced",
-      "model": "gpt-4o answer",
-      "note": "Available raw backing run used the oracle split, not small; all three memory strategies enabled, top_k=25."
-    },
-    {
-      "name": "Instruct",
-      "accuracy": 72.3,
-      "kind": "redis",
-      "model": "gpt-4o",
-      "note": "LLM-extracted Redis Agent Memory strategy."
+      "note": "Measured on 493 of 500 Small-split questions."
     },
     {
       "name": "langmem",
-      "accuracy": 71.9,
+      "accuracy": 71.94,
       "kind": "reproduced",
       "model": "gpt-4o",
-      "note": "Ingest extraction token spend was not captured."
+      "note": "Measured on 497 of 500 Small-split questions."
+    },
+    {
+      "name": "Instruct",
+      "accuracy": 71.24,
+      "kind": "redis",
+      "model": "gpt-4o",
+      "note": "Complete 500-question LongMemEval Small run."
     },
     {
       "name": "Zep / Graphiti",
       "accuracy": 71.2,
       "kind": "published",
       "model": "gpt-4o",
-      "note": "Published figure; not reproduced in this evaluation."
+      "note": "Published figure; not measured in our evaluation."
     },
     {
       "name": "Mem0",
       "accuracy": 49.0,
       "kind": "published",
       "model": "not disclosed here",
-      "note": "Published figure; not reproduced in this evaluation."
+      "note": "Published figure; not measured in our evaluation."
     },
     {
       "name": "Google Vertex Memory Bank",
       "accuracy": 42.4,
       "kind": "reproduced",
       "model": "gpt-4o answer",
-      "note": "Shipping product measured here. The ≈70% contextual figure comes from its related research paper."
+      "note": "Product measured in our evaluation; its managed ingestion cost is not captured."
     }
   ],
   "cost_accuracy": [
     {
       "name": "Remis + Instruct",
       "accuracy": 86.14,
-      "cost_usd": 0.0703,
+      "cost_usd_per_million_conversation_tokens": 33.2509,
       "kind": "redis",
       "lower_bound": false,
-      "note": "Accuracy is the complete 500-question aggregate; cost is the evaluation's published token-spend estimate."
-    },
-    {
-      "name": "Remis",
-      "accuracy": 83.4,
-      "cost_usd": 0.1066,
-      "kind": "redis",
-      "lower_bound": false,
-      "note": "The 83.4% accuracy and $0.1066 cost values come from the evaluation records; we could not find a retained raw result file with matching settings and result."
-    },
-    {
-      "name": "Instruct",
-      "accuracy": 72.3,
-      "cost_usd": 0.0206,
-      "kind": "redis",
-      "lower_bound": false
+      "note": "Completed Small-split aggregate with Remis top_k=5 and context_window=1."
     },
     {
       "name": "Mastra OM",
-      "accuracy": 84.2,
-      "cost_usd": 0.365,
+      "accuracy": 84.24,
+      "cost_usd_per_million_conversation_tokens": 171.6527,
       "kind": "reproduced",
-      "lower_bound": false
+      "lower_bound": false,
+      "note": "Complete Small-split run using Gemini for memory processing and gpt-4o for answering."
     },
     {
       "name": "emergence-fast",
-      "accuracy": 81.3,
-      "cost_usd": 0.2488,
-      "kind": "reproduced",
-      "lower_bound": false
+      "accuracy": 81.34,
+      "cost_usd_per_million_conversation_tokens": 116.9153,
+      "kind": "qualified",
+      "lower_bound": false,
+      "note": "Partial Small-split run: 493/500 questions."
     },
     {
-      "name": "Amazon AgentCore",
-      "accuracy": 77.0,
-      "cost_usd": 0.0229,
-      "kind": "reproduced",
-      "lower_bound": true,
-      "note": "Available raw backing uses the oracle split; server-side ingest cost is unavailable."
+      "name": "Instruct",
+      "accuracy": 71.24,
+      "cost_usd_per_million_conversation_tokens": 14.47,
+      "kind": "redis",
+      "lower_bound": false,
+      "note": "Complete Small-split per-message ingestion retrieval run."
     },
     {
       "name": "langmem",
-      "accuracy": 71.9,
-      "cost_usd": 0.0097,
-      "kind": "reproduced",
-      "lower_bound": true
+      "accuracy": 71.94,
+      "cost_usd_per_million_conversation_tokens": 4.6917,
+      "kind": "qualified",
+      "lower_bound": true,
+      "note": "Partial Small-split run: 497/500 questions; extraction cost was not captured."
     },
     {
-      "name": "Google Vertex MB",
+      "name": "Google Vertex Memory Bank",
       "accuracy": 42.4,
-      "cost_usd": 0.0202,
-      "kind": "reproduced",
-      "lower_bound": true
+      "cost_usd_per_million_conversation_tokens": 9.495,
+      "kind": "qualified",
+      "lower_bound": true,
+      "note": "Complete Small-split accuracy; managed ingestion cost is unavailable."
     }
   ],
   "extraction_evaluation": {
@@ -316,28 +309,5 @@
         ]
       }
     ]
-  },
-  "published_vs_measured": [
-    {
-      "name": "Google Vertex Memory Bank",
-      "published": 70.0,
-      "measured": 42.4,
-      "delta_pp": -27.6,
-      "note": "Published context is from the related research paper, not a product-reported score."
-    },
-    {
-      "name": "Amazon AgentCore",
-      "published": 73.6,
-      "measured": 77.0,
-      "delta_pp": 3.4,
-      "note": "Measured with all three strategies and top_k=25; retained raw backing uses the oracle split."
-    },
-    {
-      "name": "Oracle Agent Memory",
-      "published": 93.8,
-      "measured": 86.0,
-      "delta_pp": -7.8,
-      "note": "Measured answer model was gpt-5.5 xhigh, unlike the common gpt-4o backbone."
-    }
-  ]
+  }
 }

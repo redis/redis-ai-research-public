@@ -48,137 +48,15 @@ function makeInteractive(node, label, html) {
   node.addEventListener("blur", hideTooltip);
 }
 
-function addGrid(svg, { x, y, width, height, values, scale, format = String }) {
-  values.forEach((value) => {
-    const gy = scale(value);
-    svg.append(
-      svgEl("line", {
-        x1: x,
-        x2: x + width,
-        y1: gy,
-        y2: gy,
-        stroke: COLORS.line,
-        "stroke-width": 1,
-      }),
-      svgEl(
-        "text",
-        {
-          x: x - 10,
-          y: gy + 4,
-          fill: COLORS.muted,
-          "font-size": 11,
-          "text-anchor": "end",
-        },
-        format(value),
-      ),
-    );
-  });
-
-  svg.append(
-    svgEl("line", {
-      x1: x,
-      x2: x,
-      y1: y,
-      y2: y + height,
-      stroke: COLORS.ink,
-      "stroke-width": 1,
-    }),
-  );
-}
-
-function drawStrategyChart(data) {
-  const root = document.querySelector("#strategy-chart");
-  const width = 900;
-  const height = 350;
-  const margin = { top: 22, right: 35, bottom: 66, left: 55 };
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
-  const svg = svgEl("svg", {
-    viewBox: `0 0 ${width} ${height}`,
-    "aria-hidden": "true",
-  });
-  const y = (value) => margin.top + innerHeight - (value / 100) * innerHeight;
-
-  addGrid(svg, {
-    x: margin.left,
-    y: margin.top,
-    width: innerWidth,
-    height: innerHeight,
-    values: [0, 20, 40, 60, 80, 100],
-    scale: y,
-    format: (value) => `${value}`,
-  });
-
-  const slot = innerWidth / data.length;
-  const barWidth = Math.min(145, slot * 0.54);
-
-  data.forEach((item, index) => {
-    const x = margin.left + index * slot + (slot - barWidth) / 2;
-    const barY = y(item.task_averaged_accuracy);
-    const group = svgEl("g");
-    const fill = index === data.length - 1 ? COLORS.red : index === 1 ? COLORS.orange : COLORS.blue;
-    const bar = svgEl("rect", {
-      x,
-      y: barY,
-      width: barWidth,
-      height: margin.top + innerHeight - barY,
-      fill,
-    });
-
-    group.append(
-      bar,
-      svgEl(
-        "text",
-        {
-          x: x + barWidth / 2,
-          y: barY - 12,
-          fill: COLORS.ink,
-          "font-family": "Georgia, serif",
-          "font-size": 22,
-          "font-weight": 700,
-          "text-anchor": "middle",
-        },
-        `${item.task_averaged_accuracy.toFixed(1)}%`,
-      ),
-      svgEl(
-        "text",
-        {
-          x: x + barWidth / 2,
-          y: margin.top + innerHeight + 27,
-          fill: COLORS.ink,
-          "font-size": 12,
-          "font-weight": 700,
-          "text-anchor": "middle",
-        },
-        item.name,
-      ),
-    );
-
-    makeInteractive(
-      group,
-      `${item.name}: ${item.task_averaged_accuracy}% task-averaged accuracy`,
-      `<strong>${item.name}</strong><br>Task-averaged: <strong>${item.task_averaged_accuracy.toFixed(1)}%</strong><br>${item.note}`,
-    );
-    svg.append(group);
-  });
-
-  root.replaceChildren(svg);
-}
-
-function drawLeaderboard(data) {
-  const root = document.querySelector("#leaderboard-chart");
-  const width = 1040;
-  const rowHeight = 28;
-  const margin = { top: 27, right: 45, bottom: 30, left: 205 };
+function drawPerTaskChart(data) {
+  const root = document.querySelector("#per-task-chart");
+  const width = 760;
+  const rowHeight = 43;
+  const margin = { top: 28, right: 50, bottom: 22, left: 145 };
   const innerWidth = width - margin.left - margin.right;
   const height = margin.top + margin.bottom + data.length * rowHeight;
-  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
   const x = (value) => margin.left + (value / 100) * innerWidth;
-  const kindColor = {
-    redis: COLORS.red,
-    reproduced: COLORS.orange,
-    published: COLORS.published,
-  };
+  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
 
   [0, 20, 40, 60, 80, 100].forEach((tick) => {
     const gx = x(tick);
@@ -205,40 +83,155 @@ function drawLeaderboard(data) {
   });
 
   data.forEach((item, index) => {
-    const y = margin.top + index * rowHeight;
-    const barHeight = 16;
+    const rowY = margin.top + index * rowHeight;
     const group = svgEl("g");
+    const bars = [
+      { value: item.instruct, y: rowY + 5, color: COLORS.blue, label: "Instruct" },
+      {
+        value: item.remis_instruct,
+        y: rowY + 22,
+        color: COLORS.red,
+        label: "Remis + Instruct",
+      },
+    ];
+
     group.append(
       svgEl(
         "text",
         {
           x: margin.left - 12,
-          y: y + 12,
+          y: rowY + 18,
           fill: COLORS.ink,
           "font-size": 10.5,
-          "font-weight": item.kind === "redis" ? 750 : 500,
+          "font-weight": 700,
+          "text-anchor": "end",
+        },
+        item.task,
+      ),
+      svgEl(
+        "text",
+        {
+          x: margin.left - 12,
+          y: rowY + 32,
+          fill: COLORS.muted,
+          "font-size": 9,
+          "text-anchor": "end",
+        },
+        `n=${item.count}`,
+      ),
+    );
+
+    bars.forEach((bar) => {
+      group.append(
+        svgEl("rect", {
+          x: margin.left,
+          y: bar.y,
+          width: Math.max(2, x(bar.value) - margin.left),
+          height: 11,
+          fill: bar.color,
+        }),
+        svgEl(
+          "text",
+          {
+            x: x(bar.value) + 7,
+            y: bar.y + 9,
+            fill: COLORS.ink,
+            "font-size": 10,
+            "font-weight": 700,
+          },
+          `${bar.value.toFixed(1)}%`,
+        ),
+      );
+    });
+
+    makeInteractive(
+      group,
+      `${item.task}: Instruct ${item.instruct.toFixed(1)}%, Remis + Instruct ${item.remis_instruct.toFixed(1)}%`,
+      `<strong>${item.task}</strong> (n=${item.count})<br>Instruct: ${item.instruct.toFixed(1)}%<br>Remis + Instruct: ${item.remis_instruct.toFixed(1)}%`,
+    );
+    svg.append(group);
+  });
+
+  root.replaceChildren(svg);
+}
+
+function drawLeaderboard(data) {
+  const root = document.querySelector("#leaderboard-chart");
+  const rows = [...data].sort((a, b) => b.accuracy - a.accuracy);
+  const width = 760;
+  const rowHeight = 29;
+  const margin = { top: 28, right: 42, bottom: 24, left: 180 };
+  const innerWidth = width - margin.left - margin.right;
+  const height = margin.top + margin.bottom + rows.length * rowHeight;
+  const x = (value) => margin.left + (value / 100) * innerWidth;
+  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
+  const kindColor = {
+    redis: COLORS.red,
+    reproduced: COLORS.orange,
+    published: COLORS.published,
+  };
+
+  [0, 20, 40, 60, 80, 100].forEach((tick) => {
+    const gx = x(tick);
+    svg.append(
+      svgEl("line", {
+        x1: gx,
+        x2: gx,
+        y1: margin.top - 10,
+        y2: height - margin.bottom,
+        stroke: COLORS.line,
+      }),
+      svgEl(
+        "text",
+        {
+          x: gx,
+          y: 14,
+          fill: COLORS.muted,
+          "font-size": 10,
+          "text-anchor": "middle",
+        },
+        `${tick}%`,
+      ),
+    );
+  });
+
+  rows.forEach((item, index) => {
+    const rowY = margin.top + index * rowHeight;
+    const barHeight = 15;
+    const fill = kindColor[item.kind];
+    const group = svgEl("g");
+
+    group.append(
+      svgEl(
+        "text",
+        {
+          x: margin.left - 12,
+          y: rowY + 11,
+          fill: COLORS.ink,
+          "font-size": 10,
+          "font-weight": item.kind === "redis" ? 800 : 600,
           "text-anchor": "end",
         },
         item.name,
       ),
       svgEl("rect", {
         x: margin.left,
-        y,
+        y: rowY,
         width: Math.max(2, x(item.accuracy) - margin.left),
         height: barHeight,
-        fill: kindColor[item.kind],
+        fill,
         opacity: item.kind === "published" ? 0.72 : 1,
       }),
       svgEl(
         "text",
         {
           x: x(item.accuracy) + 8,
-          y: y + 12,
+          y: rowY + 11,
           fill: COLORS.ink,
-          "font-size": 10.5,
-          "font-weight": 700,
+          "font-size": 10,
+          "font-weight": 750,
         },
-        item.accuracy.toFixed(1),
+        `${item.accuracy.toFixed(1)}%`,
       ),
     );
 
@@ -247,12 +240,12 @@ function drawLeaderboard(data) {
         svgEl(
           "text",
           {
-            x: x(item.accuracy) - 7,
-            y: y + 11.5,
+            x: x(item.accuracy) - 8,
+            y: rowY + 10.8,
             fill: COLORS.white,
-            "font-size": 8.5,
+            "font-size": 7.5,
             "font-weight": 800,
-            "letter-spacing": 0.35,
+            "letter-spacing": 0.3,
             "text-anchor": "end",
           },
           item.flag.toUpperCase(),
@@ -260,11 +253,13 @@ function drawLeaderboard(data) {
       );
     }
 
-    makeInteractive(
-      group,
-      `${item.name}: ${item.accuracy}% task-averaged accuracy, ${item.kind}`,
-      `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% task-averaged accuracy<br>${item.model}<br>${item.note}`,
-    );
+    if (item.kind === "published") {
+      makeInteractive(
+        group,
+        `${item.name}: ${item.accuracy}% published accuracy`,
+        `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% published accuracy<br>${item.note}`,
+      );
+    }
     svg.append(group);
   });
 
@@ -273,13 +268,13 @@ function drawLeaderboard(data) {
 
 function drawCostChart(data) {
   const root = document.querySelector("#cost-chart");
-  const width = 980;
-  const height = 490;
-  const margin = { top: 25, right: 100, bottom: 65, left: 65 };
+  const width = 760;
+  const height = 400;
+  const margin = { top: 22, right: 78, bottom: 58, left: 58 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
-  const minCost = 0.008;
-  const maxCost = 0.5;
+  const minCost = 4;
+  const maxCost = 200;
   const minAccuracy = 40;
   const maxAccuracy = 90;
   const logMin = Math.log10(minCost);
@@ -314,7 +309,7 @@ function drawCostChart(data) {
     );
   });
 
-  [0.01, 0.02, 0.05, 0.1, 0.2, 0.5].forEach((tick) => {
+  [5, 10, 20, 50, 100, 200].forEach((tick) => {
     const gx = x(tick);
     svg.append(
       svgEl("line", {
@@ -334,7 +329,7 @@ function drawCostChart(data) {
           "font-size": 11,
           "text-anchor": "middle",
         },
-        `$${tick.toFixed(2)}`,
+        `$${tick}`,
       ),
     );
   });
@@ -344,12 +339,12 @@ function drawCostChart(data) {
       "text",
       {
         x: margin.left + innerWidth / 2,
-        y: height - 12,
+        y: height - 10,
         fill: COLORS.muted,
         "font-size": 12,
         "text-anchor": "middle",
       },
-      "Estimated LLM cost per session (USD, log scale)",
+      "Modeled LLM cost per 1M conversation tokens (USD, log scale)",
     ),
     svgEl(
       "text",
@@ -366,36 +361,40 @@ function drawCostChart(data) {
   );
 
   const labelOffsets = {
-    "Remis + Instruct": [12, -15],
-    Remis: [12, 18],
-    Instruct: [12, -8],
+    "Remis + Instruct": [12, -18],
     "Mastra OM": [-12, -13],
     "emergence-fast": [-12, 19],
-    "Amazon AgentCore": [12, -13],
-    langmem: [12, -14],
-    "Google Vertex MB": [12, 18],
+    Instruct: [12, -14],
+    langmem: [25, 18],
+    "Google Vertex Memory Bank": [25, 18],
   };
 
   data.forEach((item) => {
-    const px = x(item.cost_usd);
+    const cost = item.cost_usd_per_million_conversation_tokens;
+    const px = x(cost);
     const py = y(item.accuracy);
     const [dx, dy] = labelOffsets[item.name] ?? [10, -10];
     const anchor = dx < 0 ? "end" : "start";
     const group = svgEl("g");
-    const fill = item.kind === "redis" ? COLORS.red : COLORS.orange;
+    const fill =
+      item.kind === "redis"
+        ? COLORS.red
+        : item.kind === "reproduced"
+          ? COLORS.orange
+          : COLORS.published;
 
     if (item.lower_bound) {
       group.append(
         svgEl("line", {
-          x1: px - 18,
-          x2: px - 6,
+          x1: px + 6,
+          x2: px + 18,
           y1: py,
           y2: py,
           stroke: fill,
           "stroke-width": 2,
         }),
         svgEl("path", {
-          d: `M ${px - 18} ${py} l 5 -4 v 8 z`,
+          d: `M ${px + 18} ${py} l -5 -4 v 8 z`,
           fill,
         }),
       );
@@ -426,8 +425,8 @@ function drawCostChart(data) {
 
     makeInteractive(
       group,
-      `${item.name}: ${item.accuracy}% accuracy at ${item.lower_bound ? "at least " : ""}$${item.cost_usd} per session`,
-      `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% task-averaged accuracy<br>${item.lower_bound ? "At least " : ""}$${item.cost_usd.toFixed(4)} estimated LLM cost/session${item.lower_bound ? "<br>Server-side cost is not fully observed." : ""}${item.note ? `<br>${item.note}` : ""}`,
+      `${item.name}: ${item.accuracy}% accuracy at ${item.lower_bound ? "at least " : ""}$${cost.toFixed(2)} per 1M conversation tokens`,
+      `<strong>${item.name}</strong><br>${item.accuracy.toFixed(1)}% task-averaged accuracy<br>${item.lower_bound ? "At least " : ""}$${cost.toFixed(2)} modeled LLM cost per 1M conversation tokens${item.lower_bound ? "<br>Server-side cost is not fully observed." : ""}${item.note ? `<br>${item.note}` : ""}`,
     );
     svg.append(group);
   });
@@ -615,131 +614,14 @@ function drawExtractionChart(data) {
   root.replaceChildren(svg);
 }
 
-function wrapLabel(svg, label, x, y) {
-  const words = label.split(" ");
-  const lines = [];
-  let current = "";
-  words.forEach((word) => {
-    if (`${current} ${word}`.trim().length > 22) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = `${current} ${word}`.trim();
-    }
-  });
-  lines.push(current);
-
-  const text = svgEl("text", {
-    x,
-    y,
-    fill: COLORS.ink,
-    "font-size": 11,
-    "font-weight": 650,
-    "text-anchor": "middle",
-  });
-  lines.forEach((line, index) => {
-    text.append(svgEl("tspan", { x, dy: index === 0 ? 0 : 14 }, line));
-  });
-  svg.append(text);
-}
-
-function drawReproductionChart(data) {
-  const root = document.querySelector("#reproduction-chart");
-  const width = 900;
-  const height = 390;
-  const margin = { top: 22, right: 35, bottom: 85, left: 55 };
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
-  const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
-  const y = (value) => margin.top + innerHeight - (value / 100) * innerHeight;
-
-  addGrid(svg, {
-    x: margin.left,
-    y: margin.top,
-    width: innerWidth,
-    height: innerHeight,
-    values: [0, 20, 40, 60, 80, 100],
-    scale: y,
-  });
-
-  const slot = innerWidth / data.length;
-  const pairWidth = Math.min(155, slot * 0.68);
-  const barWidth = pairWidth / 2 - 4;
-
-  data.forEach((item, index) => {
-    const startX = margin.left + index * slot + (slot - pairWidth) / 2;
-    const group = svgEl("g");
-    [
-      { key: "published", value: item.published, color: COLORS.published },
-      { key: "measured", value: item.measured, color: COLORS.orange },
-    ].forEach((bar, barIndex) => {
-      const bx = startX + barIndex * (barWidth + 8);
-      const by = y(bar.value);
-      group.append(
-        svgEl("rect", {
-          x: bx,
-          y: by,
-          width: barWidth,
-          height: margin.top + innerHeight - by,
-          fill: bar.color,
-        }),
-        svgEl(
-          "text",
-          {
-            x: bx + barWidth / 2,
-            y: by - 8,
-            fill: COLORS.ink,
-            "font-size": 11,
-            "font-weight": 700,
-            "text-anchor": "middle",
-          },
-          bar.value.toFixed(1),
-        ),
-      );
-    });
-
-    const deltaColor = item.delta_pp > 0 ? COLORS.blue : COLORS.red;
-    group.append(
-      svgEl(
-        "text",
-        {
-          x: startX + pairWidth / 2,
-          y: margin.top + 18,
-          fill: deltaColor,
-          "font-size": 12,
-          "font-weight": 800,
-          "text-anchor": "middle",
-        },
-        `${item.delta_pp > 0 ? "+" : ""}${item.delta_pp.toFixed(1)} pp`,
-      ),
-    );
-    wrapLabel(
-      group,
-      item.name,
-      startX + pairWidth / 2,
-      margin.top + innerHeight + 31,
-    );
-
-    makeInteractive(
-      group,
-      `${item.name}: published ${item.published}%, measured ${item.measured}%, difference ${item.delta_pp} percentage points`,
-      `<strong>${item.name}</strong><br>Published: ${item.published.toFixed(1)}%<br>Measured: ${item.measured.toFixed(1)}%<br>Difference: ${item.delta_pp > 0 ? "+" : ""}${item.delta_pp.toFixed(1)} pp<br>${item.note}`,
-    );
-    svg.append(group);
-  });
-
-  root.replaceChildren(svg);
-}
-
 async function initCharts() {
   try {
-    const response = await fetch("data/results.json?v=20260728-compact-footnote");
+    const response = await fetch("data/results.json?v=20260730-minimal-tooltips");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    drawStrategyChart(data.redis_strategies);
+    drawPerTaskChart(data.per_task_comparison);
     drawLeaderboard(data.leaderboard);
     drawCostChart(data.cost_accuracy);
-    drawReproductionChart(data.published_vs_measured);
   } catch (error) {
     document.querySelectorAll(".chart").forEach((chart) => {
       chart.innerHTML =

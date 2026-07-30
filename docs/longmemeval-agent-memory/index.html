@@ -13,15 +13,35 @@
     />
     <meta name="theme-color" content="#f5f1e8" />
     <meta property="og:type" content="article" />
-    <meta property="og:title" content="Benchmarking agent memory on LongMemEval" />
+    <meta property="og:title" content="Redis Agent Memory on LongMemEval" />
+    <meta
+      property="og:url"
+      content="https://redis.github.io/redis-ai-research-public/longmemeval-agent-memory/"
+    />
     <meta
       property="og:description"
-      content="We compared Instruct, Remis, and Remis + Instruct on LongMemEval."
+      content="A 500-question evaluation of raw conversation retrieval, extracted memories, and a configuration combining both."
     />
-    <meta property="og:image" content="assets/social-card.svg" />
-    <title>Benchmarking agent memory on LongMemEval</title>
-    <link rel="stylesheet" href="styles.css?v=20260728-compact-footnote" />
-    <script src="script.js?v=20260728-compact-footnote" defer></script>
+    <meta
+      property="og:image"
+      content="https://redis.github.io/redis-ai-research-public/longmemeval-agent-memory/assets/social-card.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Redis Agent Memory on LongMemEval" />
+    <meta
+      name="twitter:description"
+      content="A 500-question evaluation of raw conversation retrieval, extracted memories, and a configuration combining both."
+    />
+    <meta
+      name="twitter:image"
+      content="https://redis.github.io/redis-ai-research-public/longmemeval-agent-memory/assets/social-card.png"
+    />
+    <title>Redis Agent Memory on LongMemEval</title>
+    <link rel="stylesheet" href="styles.css?v=20260730-reasoning-effect" />
+    <script src="script.js?v=20260730-minimal-tooltips" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#article">Skip to article</a>
@@ -35,10 +55,10 @@
         <span>Redis AI Research</span>
       </a>
       <nav aria-label="Article sections">
-        <a href="#results">Results</a>
-        <a href="#extraction">Extraction</a>
         <a href="#method">Method</a>
-        <a href="#limits">Limits</a>
+        <a href="#results">Results</a>
+        <a href="#cost">Cost</a>
+        <a href="#extraction">Extraction</a>
       </nav>
     </header>
 
@@ -46,68 +66,51 @@
       <article>
         <header class="hero" id="top">
           <div class="hero-copy">
-            <p class="eyebrow">Agent memory · LongMemEval · June–July 2026</p>
-            <h1>Benchmarking agent memory on LongMemEval</h1>
+            <p class="eyebrow">Agent memory · LongMemEval · June 2026</p>
+            <h1>Redis Agent Memory on LongMemEval</h1>
             <p class="dek">
               We compared raw conversation retrieval, extracted memories, and a combination
-              of the two. In our 500-question run, Remis + Instruct reached
+              of the two. Across the completed 500-question evaluation, Remis + Instruct reached
               <strong>86.1% task-averaged accuracy</strong>.
-            </p>
-            <p class="byline">
-              <a href="http://ichko.github.io/" rel="author">Iliya Zhechev</a> · Radoslav Ralev ·
-              <a href="https://srijithr.gitlab.io/" rel="author">Srijith Rajamohan</a> · Jen Agarwal
             </p>
             <div class="hero-meta">
               <span>500-question benchmark</span>
               <span>6 task types</span>
               <span>gpt-4o answer model and judge</span>
             </div>
+            <p class="byline">
+              <a href="http://ichko.github.io/" rel="author">Iliya Zhechev</a> · Radoslav Ralev ·
+              <a href="https://srijithr.gitlab.io/" rel="author">Srijith Rajamohan</a> · Jen Agarwal
+            </p>
           </div>
-
-          <aside class="headline-number" aria-label="Main result">
-            <span class="number">86.1<small>%</small></span>
-            <span class="number-label">task-averaged accuracy</span>
-            <span class="number-note">425/500 correct</span>
-          </aside>
         </header>
-
-        <section class="read-this-first" aria-labelledby="read-first-title">
-          <p class="section-kicker">About the results</p>
-          <h2 id="read-first-title">How to read the comparisons</h2>
-          <div class="qualification-grid">
-            <p>
-              <strong>The Redis Agent Memory run.</strong> The main result covers all 500 questions
-              in the LongMemEval small split, using gpt-4o for answers and judging.
-            </p>
-            <p>
-              <strong>Other systems.</strong> Some were evaluated by us using our benchmark
-              code; others are published figures shown for context. Their benchmark split or
-              answer model may differ, and the chart notes those cases.
-            </p>
-            <p>
-              <strong>Cost estimates.</strong> Dollar estimates cover measured LLM token
-              usage at list prices. They exclude infrastructure, hosting, and server-side
-              ingestion costs that were not available to us.
-            </p>
-          </div>
-        </section>
 
         <section class="narrative" id="method">
           <div class="section-heading">
             <p class="section-kicker">Background</p>
-            <h2>Why use external memory</h2>
+            <h2>Why conversational agents use external memory</h2>
           </div>
           <div class="prose">
             <p>
-              Including every prior conversation in each prompt becomes slower and more
-              expensive as the history grows. An external memory system stores each session,
-              then retrieves a smaller amount of relevant context for a new question.
+              LLM-based assistants often need information from earlier conversations: user
+              preferences, facts supplied by the assistant, or updates spread across multiple
+              sessions. The simplest approach is to place the full conversation history in the
+              model’s context window for every new request. As that history grows, prompts
+              become longer, slower, and more expensive.
             </p>
             <p>
-              LongMemEval tests whether that retrieved context is sufficient. Its small
-              split contains 500 questions over multi-session chat histories, covering
-              user and assistant facts, preferences, knowledge updates, evidence spread
-              across sessions, and temporal reasoning.
+              External memory offers another approach: store information from each session and
+              retrieve only the context relevant to the current request. LongMemEval tests how
+              well systems do this. Its Small split contains 500 questions over multi-session
+              chat histories, covering user and assistant facts, preferences, knowledge
+              updates, evidence spread across sessions, and temporal reasoning.
+            </p>
+            <p>
+              For each example, the memory strategy first ingests all prior conversation
+              sessions and builds its memory store. We then submit the target test question,
+              retrieve relevant memories, and add them to the answer prompt. The generated
+              answer is compared with the reference answer by an LLM judge using LongMemEval’s
+              official benchmarking scripts.
             </p>
           </div>
         </section>
@@ -162,73 +165,116 @@
               </div>
             </article>
           </div>
+          <p class="strategy-note">
+            Standalone Remis is described because it supplies the raw-conversation path in
+            Remis + Instruct. The results focus on Instruct and the combined configuration.
+          </p>
+        </section>
+
+        <section class="read-this-first" aria-labelledby="read-first-title">
+          <p class="section-kicker">Evaluation overview</p>
+          <h2 id="read-first-title">What the evaluation measures</h2>
+          <div class="qualification-grid">
+            <p>
+              <strong>Accuracy.</strong> We report task-averaged accuracy across six
+              LongMemEval question types.
+            </p>
+            <p>
+              <strong>Strategies.</strong> The main comparison is between Instruct and
+              Remis + Instruct.
+            </p>
+            <p>
+              <strong>Cost.</strong> Estimates reflect observed model usage at list prices.
+            </p>
+          </div>
         </section>
 
         <section class="results-section" id="results" aria-labelledby="results-title">
           <div class="section-heading">
             <p class="section-kicker">Results</p>
-            <h2 id="results-title">Results for the three Redis Agent Memory strategies</h2>
+            <h2 id="results-title">Results for Redis Agent Memory strategies</h2>
             <p>
-              The primary metric gives each of the six task types equal weight, rather than
-              giving more weight to categories that contain more questions.
+              The figures show overall accuracy, task-level results, and comparisons with
+              other memory systems.
             </p>
           </div>
 
-          <figure class="chart-block">
-            <div class="chart-header">
-              <div>
-                <h3>Redis Agent Memory strategy accuracy</h3>
-                <p>Task-averaged accuracy on LongMemEval small (%)</p>
+          <div class="results-story">
+            <div class="results-story-copy">
+              <p class="section-kicker">Complete runs</p>
+              <div class="score-comparison" aria-label="Overall task-averaged accuracy">
+                <p>
+                  <strong>86.1%</strong>
+                  <span>Remis + Instruct</span>
+                </p>
+                <p>
+                  <strong>71.2%</strong>
+                  <span>Instruct</span>
+                </p>
               </div>
-              <span class="chart-unit">Higher is better</span>
+              <h3>Higher accuracy across all six task types</h3>
+              <p>
+                The largest differences were on preferences and assistant facts. User facts
+                were already strong with Instruct alone.
+              </p>
             </div>
-            <p class="chart-summary">
-              Remis + Instruct had the highest result shown, at 86.1%. The 83.4% Remis
-              value is included for comparison, but we could not match it to a retained raw
-              result file.
-            </p>
-            <div id="strategy-chart" class="chart" role="img" aria-label="Bar chart comparing Redis Agent Memory strategy accuracy"></div>
-            <figcaption>
-              The Remis + Instruct result is the complete 500-question small-split aggregate using
-              the gpt-4o answer model and official gpt-4o judge.
-            </figcaption>
-          </figure>
+            <figure class="task-breakdown">
+              <div class="chart-header">
+                <div>
+                  <h3>Accuracy by task type</h3>
+                  <p>LongMemEval small (%)</p>
+                </div>
+                <div class="legend" aria-label="Chart legend">
+                  <span><i class="legend-swatch instruct"></i>Instruct</span>
+                  <span><i class="legend-swatch redis"></i>Remis + Instruct</span>
+                </div>
+              </div>
+                <div
+                  id="per-task-chart"
+                  class="chart"
+                  role="img"
+                  aria-label="Bar chart comparing Instruct and Remis plus Instruct across six task types"
+                ></div>
+              <figcaption>Each task type contributes equally to the overall metric.</figcaption>
+            </figure>
+          </div>
 
-          <figure class="chart-block chart-wide">
-            <div class="chart-header">
-              <div>
-                <h3>Remis + Instruct in context</h3>
-                <p>Task-averaged accuracy on LongMemEval small (%)</p>
+          <div class="leaderboard-story">
+            <figure class="leaderboard-figure">
+              <div class="chart-header">
+                <div>
+                  <h3>Task-averaged accuracy</h3>
+                  <p>LongMemEval small (%)</p>
+                </div>
+                <div class="legend" aria-label="Chart legend">
+                  <span><i class="legend-swatch redis"></i>Redis Agent Memory</span>
+                  <span><i class="legend-swatch reproduced"></i>Measured third-party</span>
+                  <span><i class="legend-swatch published"></i>Published only</span>
+                </div>
               </div>
-              <div class="legend" aria-label="Chart legend">
-                <span><i class="legend-swatch redis"></i>Redis Agent Memory</span>
-                <span><i class="legend-swatch reproduced"></i>Third-party, reproduced</span>
-                <span><i class="legend-swatch published"></i>Published only</span>
-              </div>
+              <div
+                id="leaderboard-chart"
+                class="chart"
+                role="img"
+                aria-label="Leaderboard comparing Redis Agent Memory with measured and published systems"
+              ></div>
+            </figure>
+            <div class="leaderboard-copy">
+              <p class="section-kicker">Comparison systems</p>
+              <h3>Remis + Instruct led the comparison</h3>
+              <p>
+                Remis + Instruct reached 86.1%, followed closely by Oracle at 86.0% and Mastra
+                OM at 84.2%. Orange rows are systems we measured; gray rows are published
+                reference values. The chart provides broad context rather than a controlled
+                head-to-head ranking.
+              </p>
             </div>
-            <p class="chart-summary">
-              Remis + Instruct reached 86.1%, the highest result among the systems run in our
-              evaluation code. Published figures above it use different setups and are not
-              direct comparisons.
-            </p>
-            <div id="leaderboard-chart" class="chart" role="img" aria-label="Leaderboard bar chart"></div>
-            <figcaption>
-              Red rows are the three Redis Agent Memory strategies described above. Orange rows
-              are third-party systems we ran. Gray rows are published figures we did not
-              independently verify. Models, splits, and system boundaries can differ.
-            </figcaption>
-            <p class="comparison-footnote">
-              * OMEGA uses GPT-4.1 generation and grading with benchmark-selected prompts;
-              Chronos adds query guidance, reranking, and iterative retrieval. Neither is
-              directly comparable to our run.
-            </p>
-          </figure>
+          </div>
         </section>
 
         <section class="narrative finding">
           <div class="section-heading">
-            <p class="section-kicker">Interpretation</p>
-            <h2>Why Remis + Instruct may have helped</h2>
+            <h2>Why Remis + Instruct works</h2>
           </div>
           <div class="prose">
             <p>
@@ -238,247 +284,117 @@
               access to both forms of context.
             </p>
             <p>
-              We did not test that explanation directly. Remis + Instruct also received
-              context from two retrieval paths, and we did not run an ablation with equal
-              retrieved-token budgets. The evaluation therefore cannot separate
-              complementary representations from the benefit of having more evidence available.
-              The trade-off may also change with different histories, models, prompts, or
-              latency requirements.
+              A July 2026 preprint,
+              <a href="https://arxiv.org/abs/2607.16848" rel="noreferrer"
+                ><cite>Beyond Memory Leaderboards</cite></a
+              >, provides a useful comparison. In its scientific-retrieval evaluation, adding
+              lexical BM25 to dense semantic retrieval was the largest intervention measured.
+              Under a matched retrieval budget, the three resulting sparse–dense hybrids were
+              effectively tied at the top of its PTr benchmark.
             </p>
             <p>
-              Chronos reports a similar raw-plus-structured design, but with additional query
-              guidance, reranking, and iterative retrieval.
+              That design maps directly to the Remis path: Remis combines dense semantic search
+              with BM25 over raw conversation chunks, while Instruct contributes separately
+              extracted facts. Remis + Instruct therefore pairs sparse–dense raw-context
+              retrieval with structured memory. The paper studies scientific documents rather
+              than conversations, so it supports the retrieval pattern rather than validating
+              our LongMemEval result.
             </p>
           </div>
         </section>
 
-        <section class="narrative" aria-labelledby="related-work-title">
+        <section class="economics" id="cost" aria-labelledby="economics-title">
           <div class="section-heading">
-            <p class="section-kicker">Related work</p>
-            <h2 id="related-work-title">Evidence for hybrid retrieval and preserving raw context</h2>
+            <p class="section-kicker">Cost</p>
+            <h2 id="economics-title">Cost in context</h2>
+            <p>
+              We include systems for which our evaluation records contain both an accuracy
+              result and enough token data to estimate visible LLM spend.
+            </p>
           </div>
-          <div class="prose">
-            <p>
-              A July 2026 preprint,
-              <a href="https://arxiv.org/abs/2607.16848" rel="noreferrer"
-                ><cite>Beyond Memory Leaderboards</cite></a
-              >, evaluated eight memory and retrieval systems over full scientific papers.
-              The authors found that retrieval modality and raw-text preservation materially
-              affected results. On one of their two corpora, adding BM25 to dense retrieval
-              was the largest measured intervention for the systems where they could test it.
-            </p>
-            <p>
-              These findings provide independent evidence for core choices in our approach.
-              Remis combines dense and BM25 retrieval over raw conversation chunks, and the
-              Remis + Instruct keeps that raw evidence available alongside extracted memories.
-              The paper also found that matching retrieval budgets could change system rankings,
-              reinforcing our decision to qualify comparisons made under different protocols.
-              Its task is scientific-paper retrieval rather than conversational memory, so the
-              connection is at the level of design and evaluation principles.
-            </p>
+
+          <div class="cost-story">
+            <div class="cost-copy">
+              <p class="section-kicker">Accuracy and cost</p>
+              <h3>Highest accuracy at about one-fifth of Mastra’s modeled cost</h3>
+              <p>
+                Among complete Small-split runs with fully observed model-token spend,
+                Remis + Instruct scored 1.9 points above Mastra OM at $33.25 versus $171.65
+                per million conversation tokens. Instruct was cheaper but 14.9 points less
+                accurate. Gray lower-bound points omit extraction or managed-ingestion spend,
+                so their apparent cost advantage is incomplete.
+              </p>
+            </div>
+            <figure class="cost-figure">
+              <div class="chart-header">
+                <div>
+                  <h3>Measured systems</h3>
+                  <p>Upper-left is better; cost axis is logarithmic</p>
+                </div>
+                <div class="legend" aria-label="Chart legend">
+                  <span><i class="legend-swatch redis"></i>Redis Agent Memory</span>
+                  <span><i class="legend-swatch reproduced"></i>Complete third-party</span>
+                  <span><i class="legend-swatch qualified"></i>Partial or lower bound</span>
+                </div>
+              </div>
+              <div id="cost-chart" class="chart cost-chart" role="img" aria-label="Scatter plot of accuracy and estimated cost"></div>
+              <figcaption>
+                Modeled visible LLM spend per 1M conversation tokens. All points come from our
+                evaluation runs; arrows mark lower bounds. Infrastructure and hosting are excluded.
+              </figcaption>
+            </figure>
           </div>
         </section>
 
         <section class="extraction-study" id="extraction" aria-labelledby="extraction-title">
           <div class="section-heading">
-            <p class="section-kicker">Extraction model comparison</p>
-            <h2 id="extraction-title">Results from changing the extraction model</h2>
+            <p class="section-kicker">Reasoning-effort study</p>
+            <h2 id="extraction-title">How reasoning effort affects extraction accuracy</h2>
             <p>
-              Instruct uses an LLM to turn each session into memories. In a separate experiment,
-              we kept the store, answer model, and judge fixed while changing the extraction
-              model and its reasoning effort.
+              We varied reasoning effort within each extraction model and measured the resulting
+              accuracy and cost.
             </p>
           </div>
 
-          <div class="study-method" aria-label="Extraction experiment controls">
-            <div>
-              <strong>Fixed</strong>
-              <span>Redis Agent Memory, Instruct strategy</span>
-            </div>
-            <div>
-              <strong>Fixed</strong>
-              <span>gpt-4o answering and judging</span>
-            </div>
-            <div>
-              <strong>Varied</strong>
-              <span>extractor and reasoning effort</span>
-            </div>
-          </div>
-
-          <figure class="chart-block">
-            <div class="chart-header">
-              <div>
-                <h3>Extraction accuracy and normalized cost</h3>
-                <p>Question-level accuracy on LongMemEval small</p>
+          <div class="extraction-story">
+            <figure class="extraction-plot">
+              <div class="chart-header">
+                <div>
+                  <h3>Reasoning effort, extraction accuracy, and cost</h3>
+                  <p>Higher accuracy and lower cost are better</p>
+                </div>
+                <span class="chart-unit">Upper-left is better</span>
               </div>
-              <span class="chart-unit">Upper-left is better</span>
-            </div>
-            <p class="chart-summary">
-              Each line follows one extraction model as reasoning effort changes; farther
-              left is cheaper and higher is more accurate. GPT-5-mini at medium effort had
-              the highest question-level score in these runs, while higher effort did not
-              consistently improve accuracy.
-            </p>
-            <img
-              class="extraction-figure"
-              src="assets/extractor-price-quality.svg"
-              width="1000"
-              height="520"
-              alt="Accuracy versus cost for gpt-5-nano, gpt-5-mini, gpt-5, and gpt-4o as memory extraction models across reasoning-effort settings"
-            />
-            <figcaption>
-              Each connected line is one model family across reasoning-effort settings.
-              Costs include extraction, answering, and embeddings, normalized per million
-              conversation tokens using OpenAI API prices verified in July 2026. The mini
-              and gpt-5 curves use the first 100 examples; nano and gpt-4o use all 500.
-              Each cell is a single run, so small differences should not be over-interpreted.
-            </figcaption>
-          </figure>
-
-          <div class="extraction-findings">
-            <article>
-              <span>82%</span>
-              <p>
-                <strong>gpt-5-mini, medium reasoning.</strong> This run reached 82% on the
-                100-example subset, the highest observed question-level score in this set of
-                runs. Estimated cost was $4.45 per million conversation tokens.
-              </p>
-            </article>
-            <article>
-              <span>$1.62</span>
-              <p>
-                <strong>gpt-5-mini, low reasoning.</strong> This run reached 72.0% on 100
-                examples. The gpt-4o run reached 72.1% on 500 examples at an estimated $6.42
-                per million conversation tokens.
-              </p>
-            </article>
-            <article>
-              <span>Effort</span>
-              <p>
-                <strong>Accuracy did not rise at every higher effort setting.</strong> Nano
-                scored lower at high effort than at medium. GPT-5 changed little between low
-                and medium effort while cost and latency increased.
-              </p>
-            </article>
-          </div>
-
-          <p class="metric-note">
-            The 82% figure uses question-level accuracy. The 86.1% figure at the top is a
-            task-averaged result for Remis + Instruct. They use different
-            metrics and are not directly comparable.
-          </p>
-        </section>
-
-        <section class="economics" aria-labelledby="economics-title">
-          <div class="section-heading">
-            <p class="section-kicker">Cost and latency</p>
-            <h2 id="economics-title">Estimated LLM cost and measured latency</h2>
-            <p>
-              For the cost comparison, one session includes ingestion plus 5.13 queries,
-              the average number of user turns in this benchmark split.
-            </p>
-          </div>
-
-          <figure class="chart-block">
-            <div class="chart-header">
-              <div>
-                <h3>Task-averaged accuracy and estimated LLM cost</h3>
-                <p>Total memory cost per session (USD, log scale)</p>
+              <div class="figure-scroll">
+                <img
+                  class="extraction-figure"
+                  src="assets/extractor-price-quality.svg"
+                  width="1000"
+                  height="520"
+                  alt="Accuracy versus cost for gpt-5-nano, gpt-5-mini, gpt-5, and gpt-4o as memory extraction models across reasoning-effort settings"
+                />
               </div>
-              <span class="chart-unit">Upper-left is better</span>
+            </figure>
+            <div class="extraction-copy">
+              <p class="section-kicker">Result</p>
+              <h3>More reasoning did not always improve accuracy</h3>
+              <p>
+                More reasoning generally increased cost, but it did not guarantee better
+                extraction. The best result came from GPT-5-mini at medium effort, the highest
+                effort tested within that model family.
+              </p>
             </div>
-            <p class="chart-summary">
-              Each point combines task-averaged accuracy with estimated LLM spend per session.
-              Remis + Instruct reached 86.1% at an estimated $0.0703 per
-              session. Hidden server-side costs limit direct comparisons across systems.
-            </p>
-            <div id="cost-chart" class="chart cost-chart" role="img" aria-label="Scatter plot of accuracy and estimated cost"></div>
-            <figcaption>
-              Cost = ingest $/session + 5.13 × query $/question. Prices use measured token
-              usage and list rates; infrastructure and hosting are excluded. Arrows mark
-              lower bounds where server-side spend was unavailable. These estimates inherit
-              the comparability limits of their associated accuracy runs.
-            </figcaption>
-          </figure>
-        </section>
-
-        <section class="reproduction" aria-labelledby="reproduction-title">
-          <div class="section-heading">
-            <p class="section-kicker">Reproduced results</p>
-            <h2 id="reproduction-title">Our measurements did not always match published figures</h2>
-            <p>
-              The differences went in both directions. They do not by themselves show that
-              a published result is wrong: products, prompts, defaults, and answer models can
-              differ. They show how much the evaluation setup can affect the measured result.
-            </p>
           </div>
-
-          <figure class="chart-block">
-            <div class="chart-header">
-              <div>
-                <h3>Published figure vs. our measurement</h3>
-                <p>LongMemEval accuracy (%)</p>
-              </div>
-              <div class="legend">
-                <span><i class="legend-swatch published"></i>Published figure</span>
-                <span><i class="legend-swatch reproduced"></i>Measured here</span>
-              </div>
-            </div>
-            <p class="chart-summary">
-              Each pair compares a published figure with what we measured. The differences
-              went in both directions, showing that changes in the evaluation setup can
-              change the result.
-            </p>
-            <div id="reproduction-chart" class="chart" role="img" aria-label="Paired comparison of published and measured accuracy"></div>
-            <figcaption>
-              Google’s ≈70% figure comes from the research paper behind the service, not a
-              product claim. Oracle’s reproduced run used gpt-5.5 xhigh, so it is not directly
-              comparable with the gpt-4o rows. The available AgentCore raw run used the
-              oracle split rather than the small split used by the chart’s other measurements.
-            </figcaption>
-          </figure>
-        </section>
-
-        <section class="limits" id="limits" aria-labelledby="limits-title">
-          <div class="section-heading">
-            <p class="section-kicker">Limits</p>
-            <h2 id="limits-title">Limits of this evaluation</h2>
-          </div>
-          <ol class="limits-list">
-            <li>
-              <span>01</span>
-              <p>
-                <strong>One benchmark shape.</strong> LongMemEval small has a fixed question
-                mix and roughly 24 sessions per example on average. Production histories can
-                be longer, noisier, and more dynamic.
-              </p>
-            </li>
-            <li>
-              <span>02</span>
-              <p>
-                <strong>One answer backbone for most reproduced runs.</strong> The findings
-                may shift with newer or smaller answer and extraction models.
-              </p>
-            </li>
-            <li>
-              <span>03</span>
-              <p>
-                <strong>An LLM judge.</strong> The official binary judge improves consistency,
-                but it is not error-free and does not measure answer style, calibration, or
-                user satisfaction.
-              </p>
-            </li>
-          </ol>
         </section>
 
         <section class="conclusion" aria-labelledby="conclusion-title">
           <p class="section-kicker">Summary</p>
-          <h2 id="conclusion-title">Raw excerpts and extracted memories worked better together in this run</h2>
+          <h2 id="conclusion-title">Raw evidence and extracted facts produced our strongest result</h2>
           <p>
-            Remis + Instruct had the highest task-averaged accuracy of the three Redis
-            Agent Memory approaches we tested. The extraction-model runs also varied substantially in
-            accuracy, cost, and latency. Both results are specific to these benchmark settings
-            and should be tested again on the workload where the memory system will be used.
+            On LongMemEval Small, Remis + Instruct was the strongest configuration we
+            measured: 86.1% task-averaged accuracy, with a higher score than Instruct in all
+            six task types. The result supports combining hybrid retrieval over raw
+            conversation chunks with extracted facts for long-term conversational memory.
           </p>
         </section>
 
@@ -493,11 +409,10 @@
             </p>
           </div>
           <div class="footer-links">
-            <a href="data/results.json">View chart data</a>
             <a href="https://arxiv.org/abs/2410.10813" rel="noreferrer">LongMemEval paper</a>
             <a href="https://arxiv.org/abs/2607.16848" rel="noreferrer">Related evaluation preprint</a>
           </div>
-          <p class="copyright">Redis AI Research · Evaluation summary · June–July 2026</p>
+          <p class="copyright">Redis AI Research · June 2026</p>
         </footer>
       </article>
     </main>
